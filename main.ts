@@ -36,8 +36,10 @@ scene.onHitWall(SpriteKind.Player, function (sprite, location) {
 })
 function AddEntity (ID: number, Location: tiles.Location) {
     Entity = sprites.create(GetEntity_Frame_Hurt(ID), SpriteKind.Enemy)
+    sprites.setDataNumber(Entity, "ID", ID)
     sprites.setDataNumber(Entity, "Health", GetEntity_Health_Index(ID))
-    Entity.setVelocity(GetEntity_Speed_Index(ID) * -1, 0)
+    sprites.setDataNumber(Entity, "AttackDamage", GetEntity_Attack_Damage(ID))
+    Entity.setVelocity(GetEntity_Speed_Index(ID), 0)
     Entity.setStayInScreen(false)
     Entity.setFlag(SpriteFlag.GhostThroughWalls, true)
     animation.runImageAnimation(
@@ -48,14 +50,14 @@ function AddEntity (ID: number, Location: tiles.Location) {
     )
     tiles.placeOnTile(Entity, tiles.getTileLocation(Location.column, Location.row))
 }
+function GetDirectionalSprite (Angle: number, Projectile: string) {
+    return 0
+}
 controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
     if (INPUT_MODE == "Game") {
         DoAction(STATE_ULTIMATE)
     }
 })
-function DoDamage (Victim: Sprite, Instigator: Sprite) {
-    sprites.setDataNumber(Victim, "Health", 0)
-}
 function GetEntity_Frame_Hurt (ID: number) {
     return ENTITY_HURT_FRAME[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
 }
@@ -274,14 +276,30 @@ function StartingConstruction () {
     40,
     40
     ]]
+    ENTITY_ATTACK_DAMAGE = [[
+    10,
+    10,
+    10,
+    10
+    ], [
+    10,
+    10,
+    10,
+    10
+    ], [
+    10,
+    10,
+    10,
+    10
+    ]]
 }
 function AddVectorFireball (Instigator: Sprite, Target: Sprite, AccuracyRange: number) {
 	
 }
 controller.down.onEvent(ControllerButtonEvent.Released, function () {
     if (INPUT_MODE == "Game") {
-        STATE_AIMING_DURATION = game.runtime() - STATE_AIMING_DURATION
         RemoveState(STATE_AIMING)
+        AimingBow(false)
     }
 })
 function HasState (State: string) {
@@ -306,7 +324,9 @@ function AddState (State: string, SelfMutex: boolean, MutexStates: string[], Add
     }
 }
 controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
-	
+    if (INPUT_MODE == "Game") {
+        DoAction(STATE_BLOCKING)
+    }
 })
 function PlayCheckedTimedStateAnimation (AnimationDuration: number, RemoveState2: boolean) {
     if (CharacterStates[0] == STATE_ATTACK) {
@@ -389,8 +409,101 @@ controller.left.onEvent(ControllerButtonEvent.Released, function () {
         RemoveState(STATE_BLOCKING)
     }
 })
+function GetEntity_Attack_Damage (ID: number) {
+    return ENTITY_ATTACK_DAMAGE[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
+}
+function DoContactDamage (Victim: Sprite, Instigator: Sprite) {
+    sprites.setDataNumber(Victim, "Health", sprites.readDataNumber(Victim, "Health") - sprites.readDataNumber(Instigator, "AttackDamage"))
+    if (Victim != Character) {
+        music.play(music.createSoundEffect(WaveShape.Square, 200, 1, 255, 0, 100, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
+        animation.stopAnimation(animation.AnimationTypes.ImageAnimation, Victim)
+        Victim.setImage(GetEntity_Frame_Hurt(sprites.readDataNumber(Victim, "ID")))
+        Victim.vx += 200
+        timer.after(IFrameDuration, function () {
+            Victim.vx = GetEntity_Speed_Index(sprites.readDataNumber(Victim, "ID"))
+            animation.runImageAnimation(
+            Victim,
+            GetEntity_Anim_IdleRun(sprites.readDataNumber(Victim, "ID")),
+            100,
+            true
+            )
+        })
+    }
+    if (sprites.readDataNumber(Victim, "Health") <= 0) {
+    	
+    }
+}
 function GetEntity_Speed_Index (ID: number) {
-    return ENTITY_SPEED_INDEX[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
+    return ENTITY_SPEED_INDEX[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1] * -1
+}
+function AimingBow (_true: boolean) {
+    if (_true) {
+        angle = 0
+        BOW_CHARGE = 0
+        RANGED_WEAPON_CONTROL = 5
+        RANGED_WEAPON_RETICLE = sprites.create(assets.image`chargeDot4`, SpriteKind.Effect)
+        timer.background(function () {
+            while (controller.down.isPressed()) {
+                BOW_CHARGE += 25
+                if (controller.up.isPressed()) {
+                    angle = Math.min(angle + RANGED_WEAPON_CONTROL, 90)
+                } else {
+                    angle = Math.max(0, angle - RANGED_WEAPON_CONTROL)
+                }
+                if (BOW_CHARGE >= 500) {
+                    RETICLE_RADIUS = 90
+                    RANGED_WEAPON_RETICLE.setImage(assets.image`chargeDot`)
+                } else {
+                    if (BOW_CHARGE >= 375) {
+                        RETICLE_RADIUS = 78
+                        RANGED_WEAPON_RETICLE.setImage(assets.image`chargeDot2`)
+                    } else {
+                        if (BOW_CHARGE >= 175) {
+                            RETICLE_RADIUS = 60
+                            RANGED_WEAPON_RETICLE.setImage(assets.image`chargeDot3`)
+                        } else {
+                            RETICLE_RADIUS = 50
+                        }
+                    }
+                }
+                RANGED_WEAPON_RETICLE.x = Character.x + RETICLE_RADIUS * Math.cos(angle * Math.PI / 180)
+                RANGED_WEAPON_RETICLE.y = Character.y - RETICLE_RADIUS * Math.sin(angle * Math.PI / 180)
+                pause(25)
+            }
+        })
+    } else {
+        sprites.destroy(RANGED_WEAPON_RETICLE)
+        if (BOW_CHARGE >= 200) {
+            arrow = sprites.create(img`
+                . . . . . . . . . . . . . . . . 
+                . . . . . . . . . . . . . . . . 
+                . . . . . . . . . . . . . . . . 
+                . . . . . . . . . . . . . . . . 
+                . . . . 6 6 6 6 6 6 . . . . . . 
+                . . . 6 6 6 6 6 6 6 6 6 . . . . 
+                . . 6 6 6 6 6 6 6 6 6 6 6 . . . 
+                . 6 6 6 6 6 6 6 6 6 6 6 6 . . . 
+                . 6 6 6 6 6 6 6 6 6 6 6 6 6 . . 
+                . 6 6 6 6 6 6 6 6 6 6 6 6 6 . . 
+                . . 6 6 6 6 6 6 6 6 6 6 6 6 . . 
+                . . . . . 6 6 6 6 6 6 6 6 6 . . 
+                . . . . . . 6 6 6 6 6 6 6 . . . 
+                . . . . . . . . . . . . . . . . 
+                . . . . . . . . . . . . . . . . 
+                . . . . . . . . . . . . . . . . 
+                `, SpriteKind.Projectile)
+            sprites.setDataNumber(arrow, "ProjectileDamage", Math.max(BOW_CHARGE, 500) / 500 * sprites.readDataNumber(Character, "BowDamage"))
+            arrow.setPosition(Character.x, Character.y)
+            PlayerArrowDX = Character.x + RETICLE_RADIUS * Math.cos(angle * Math.PI / 180) - Character.x
+            PlayerArrowDY = Character.y - RETICLE_RADIUS * Math.sin(angle * Math.PI / 180) - Character.y
+            PlayerArrowDistance = Math.sqrt(PlayerArrowDX * PlayerArrowDX + PlayerArrowDY * PlayerArrowDY)
+            arrow.vx = PlayerArrowDX / (PlayerArrowDistance * 0.003)
+            arrow.vy = PlayerArrowDY / (PlayerArrowDistance * 0.003)
+            arrow.ay = 200
+        }
+        angle = 0
+        BOW_CHARGE = 0
+    }
 }
 controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
     if (INPUT_MODE == "Game") {
@@ -447,6 +560,7 @@ function DoAction (Action: string) {
             STATE_AIMING_DURATION = game.runtime()
             PlayCheckedTimedStateAnimation(0, false)
             AttachBow()
+            AimingBow(true)
         }
         if (Action == STATE_BLOCKING) {
             AddState(STATE_BLOCKING, true, [STATE_ATTACK, STATE_AIMING, STATE_CASTING], true)
@@ -455,6 +569,7 @@ function DoAction (Action: string) {
         }
         if (Action == STATE_JUMP) {
             if (Character.isHittingTile(CollisionDirection.Bottom)) {
+                music.play(music.createSoundEffect(WaveShape.Square, 400, 600, 255, 0, 100, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
                 AddState(STATE_JUMP, true, [], false)
                 Character.vy = -135
                 PlayCheckedTimedStateAnimation(100, false)
@@ -500,15 +615,25 @@ function AttachBow () {
 }
 sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSprite) {
     while (HasState(STATE_ATTACK)) {
-        DoDamage(otherSprite, sprite)
+        DoContactDamage(otherSprite, sprite)
         pause(IFrameDuration)
     }
 })
+let STATE_AIMING_DURATION = 0
 let Character_Bow: Sprite = null
 let Character_Shield: Sprite = null
+let PlayerArrowDistance = 0
+let PlayerArrowDY = 0
+let PlayerArrowDX = 0
+let arrow: Sprite = null
+let RETICLE_RADIUS = 0
+let RANGED_WEAPON_RETICLE: Sprite = null
+let RANGED_WEAPON_CONTROL = 0
+let BOW_CHARGE = 0
+let angle = 0
 let j = 0
 let CharacterStates: string[] = []
-let STATE_AIMING_DURATION = 0
+let ENTITY_ATTACK_DAMAGE: number[][] = []
 let ENTITY_SPEED_INDEX: number[][] = []
 let ENTITY_HEALTH_INDEX: number[][] = []
 let ENTITY_ANIM_IDLERUN: Image[][][] = []
