@@ -51,7 +51,75 @@ function AddEntity (ID: number, Location: tiles.Location) {
     tiles.placeOnTile(Entity, tiles.getTileLocation(Location.column, Location.row))
 }
 function GetDirectionalSprite (Angle: number, Projectile: string) {
-    return 0
+    if (Projectile == "arrow") {
+        if (Angle <= 90 && Angle > 82) {
+            return assets.image`playerArrow2`
+        }
+        if (Angle <= 82 && Angle > 76) {
+            return assets.image`playerArrow3`
+        }
+        if (Angle <= 76 && Angle > 68) {
+            return assets.image`playerArrow4`
+        }
+        if (Angle <= 68 && Angle > 58) {
+            return assets.image`playerArrow5`
+        }
+        if (Angle <= 58 && Angle > 50) {
+            return assets.image`playerArrow6`
+        }
+        if (Angle <= 50 && Angle > 39) {
+            return assets.image`playerArrow7`
+        }
+        if (Angle <= 39 && Angle > 32) {
+            return assets.image`playerArrow8`
+        }
+        if (Angle <= 32 && Angle > 25) {
+            return assets.image`playerArrow9`
+        }
+        if (Angle <= 25 && Angle > 14) {
+            return assets.image`playerArrow10`
+        } else {
+            return assets.image`playerArrow11`
+        }
+    } else if (Projectile == "firework") {
+        return img`
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            `
+    } else {
+        return img`
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            `
+    }
 }
 controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
     if (INPUT_MODE == "Game") {
@@ -440,7 +508,7 @@ function AimingBow (_true: boolean) {
     if (_true) {
         angle = 0
         BOW_CHARGE = 0
-        RANGED_WEAPON_CONTROL = 5
+        RANGED_WEAPON_CONTROL = 2
         RANGED_WEAPON_RETICLE = sprites.create(assets.image`chargeDot4`, SpriteKind.Effect)
         timer.background(function () {
             while (controller.down.isPressed()) {
@@ -474,31 +542,17 @@ function AimingBow (_true: boolean) {
     } else {
         sprites.destroy(RANGED_WEAPON_RETICLE)
         if (BOW_CHARGE >= 200) {
-            arrow = sprites.create(img`
-                . . . . . . . . . . . . . . . . 
-                . . . . . . . . . . . . . . . . 
-                . . . . . . . . . . . . . . . . 
-                . . . . . . . . . . . . . . . . 
-                . . . . 6 6 6 6 6 6 . . . . . . 
-                . . . 6 6 6 6 6 6 6 6 6 . . . . 
-                . . 6 6 6 6 6 6 6 6 6 6 6 . . . 
-                . 6 6 6 6 6 6 6 6 6 6 6 6 . . . 
-                . 6 6 6 6 6 6 6 6 6 6 6 6 6 . . 
-                . 6 6 6 6 6 6 6 6 6 6 6 6 6 . . 
-                . . 6 6 6 6 6 6 6 6 6 6 6 6 . . 
-                . . . . . 6 6 6 6 6 6 6 6 6 . . 
-                . . . . . . 6 6 6 6 6 6 6 . . . 
-                . . . . . . . . . . . . . . . . 
-                . . . . . . . . . . . . . . . . 
-                . . . . . . . . . . . . . . . . 
-                `, SpriteKind.Projectile)
+            music.play(music.createSoundEffect(WaveShape.Noise, 2365, 4651, 255, 0, 200, SoundExpressionEffect.Warble, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
+            arrow = sprites.create(GetDirectionalSprite(angle, "arrow"), SpriteKind.Projectile)
             sprites.setDataNumber(arrow, "ProjectileDamage", Math.max(BOW_CHARGE, 500) / 500 * sprites.readDataNumber(Character, "BowDamage"))
             arrow.setPosition(Character.x, Character.y)
             PlayerArrowDX = Character.x + RETICLE_RADIUS * Math.cos(angle * Math.PI / 180) - Character.x
             PlayerArrowDY = Character.y - RETICLE_RADIUS * Math.sin(angle * Math.PI / 180) - Character.y
             PlayerArrowDistance = Math.sqrt(PlayerArrowDX * PlayerArrowDX + PlayerArrowDY * PlayerArrowDY)
-            arrow.vx = PlayerArrowDX / (PlayerArrowDistance * 0.003)
-            arrow.vy = PlayerArrowDY / (PlayerArrowDistance * 0.003)
+            arrow.vx = Math.max(BOW_CHARGE, 600) / 600 * (PlayerArrowDX / (PlayerArrowDistance * 0.004))
+            arrow.vy = Math.max(BOW_CHARGE, 600) / 600 * (PlayerArrowDY / (PlayerArrowDistance * 0.004))
+            arrow.lifespan = 2000
+            arrow.setFlag(SpriteFlag.GhostThroughWalls, true)
             arrow.ay = 200
         }
         angle = 0
@@ -573,6 +627,9 @@ function DoAction (Action: string) {
                 AddState(STATE_JUMP, true, [], false)
                 Character.vy = -135
                 PlayCheckedTimedStateAnimation(100, false)
+                if (HasState(STATE_AIMING)) {
+                    angle = Math.min(angle + randint(20, 40), 90)
+                }
             }
         }
     }
