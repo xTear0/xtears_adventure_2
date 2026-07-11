@@ -35,29 +35,16 @@ scene.onHitWall(SpriteKind.Player, function (sprite, location) {
     }
 })
 function AddEntity (ID: number, Location: tiles.Location) {
-    Entity = sprites.create(assets.image`constructArrays10`, SpriteKind.Enemy)
+    Entity = sprites.create(GetEntity_Frame_Hurt(ID), SpriteKind.Enemy)
+    sprites.setDataNumber(Entity, "Health", GetEntity_Health_Index(ID))
+    Entity.setVelocity(GetEntity_Speed_Index(ID) * -1, 0)
+    Entity.setStayInScreen(false)
+    Entity.setFlag(SpriteFlag.GhostThroughWalls, true)
     animation.runImageAnimation(
     Entity,
-    [img`
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        `],
-    500,
-    false
+    GetEntity_Anim_IdleRun(ID),
+    100,
+    true
     )
     tiles.placeOnTile(Entity, tiles.getTileLocation(Location.column, Location.row))
 }
@@ -66,6 +53,12 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
         DoAction(STATE_ULTIMATE)
     }
 })
+function DoDamage (Victim: Sprite, Instigator: Sprite) {
+    sprites.setDataNumber(Victim, "Health", 0)
+}
+function GetEntity_Frame_Hurt (ID: number) {
+    return ENTITY_HURT_FRAME[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
+}
 controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     if (INPUT_MODE == "Game") {
         DoAction(STATE_JUMP)
@@ -80,6 +73,7 @@ function StartingConstruction () {
     STATE_CASTING = "Casting"
     STATE_ULTIMATE = "Ultimate"
     STATE_IDLERUN = "IdleRun"
+    IFrameDuration = 100
     ENTITY_ANIM_IDLERUN = [[
     assets.animation`mobAnimation`,
     assets.animation`mobAnimation2`,
@@ -96,21 +90,189 @@ function StartingConstruction () {
     assets.animation`mobAnimation3`,
     assets.animation`mobAnimation4`
     ]]
-    ENTITY_ANIM_HURT = [[
-    assets.animation`mobAnimation`,
-    assets.animation`mobAnimation2`,
-    assets.animation`mobAnimation3`,
-    assets.animation`mobAnimation4`
+    ENTITY_HURT_FRAME = [[
+    assets.image`mobHurt`,
+    assets.image`mobHurt2`,
+    assets.image`mobHurt3`,
+    assets.image`mobHurt4`
     ], [
-    assets.animation`mobAnimation`,
-    assets.animation`mobAnimation2`,
-    assets.animation`mobAnimation3`,
-    assets.animation`mobAnimation4`
+    img`
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        `,
+    img`
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        `,
+    img`
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        `,
+    img`
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        `
     ], [
-    assets.animation`mobAnimation`,
-    assets.animation`mobAnimation2`,
-    assets.animation`mobAnimation3`,
-    assets.animation`mobAnimation4`
+    img`
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        `,
+    img`
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        `,
+    img`
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        `,
+    img`
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        `
+    ]]
+    ENTITY_HEALTH_INDEX = [[
+    20,
+    20,
+    20,
+    20
+    ], [
+    20,
+    20,
+    20,
+    20
+    ], [
+    20,
+    20,
+    20,
+    20
+    ]]
+    ENTITY_SPEED_INDEX = [[
+    40,
+    40,
+    40,
+    40
+    ], [
+    40,
+    40,
+    40,
+    40
+    ], [
+    40,
+    40,
+    40,
+    40
     ]]
 }
 function AddVectorFireball (Instigator: Sprite, Target: Sprite, AccuracyRange: number) {
@@ -144,9 +306,7 @@ function AddState (State: string, SelfMutex: boolean, MutexStates: string[], Add
     }
 }
 controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (INPUT_MODE == "Game") {
-        DoAction(STATE_BLOCKING)
-    }
+	
 })
 function PlayCheckedTimedStateAnimation (AnimationDuration: number, RemoveState2: boolean) {
     if (CharacterStates[0] == STATE_ATTACK) {
@@ -211,6 +371,9 @@ function PlayCheckedTimedStateAnimation (AnimationDuration: number, RemoveState2
         })
     }
 }
+function GetEntity_Anim_IdleRun (ID: number) {
+    return ENTITY_ANIM_IDLERUN[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
+}
 function RemoveState (State: string) {
     j = CharacterStates.indexOf(State)
     if (j >= 0) {
@@ -226,21 +389,30 @@ controller.left.onEvent(ControllerButtonEvent.Released, function () {
         RemoveState(STATE_BLOCKING)
     }
 })
+function GetEntity_Speed_Index (ID: number) {
+    return ENTITY_SPEED_INDEX[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
+}
 controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
     if (INPUT_MODE == "Game") {
         DoAction(STATE_ATTACK)
     }
 })
+function GetEntity_Health_Index (ID: number) {
+    return ENTITY_HEALTH_INDEX[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
+}
 function CreatePlayerComponent () {
     Character = sprites.create(assets.image`xtear_sprite`, SpriteKind.Player)
     Character.ay = 400
     CharacterStates = []
+    sprites.setDataNumber(Character, "Health", 40)
     animation.runImageAnimation(
     Character,
     assets.animation`player_idlerun`,
     175,
     true
     )
+    sprites.setDataNumber(Character, "AttackDamage", 7)
+    sprites.setDataNumber(Character, "BowDamage", 9)
     Character_Shield = sprites.create(assets.image`player_shield`, SpriteKind.Effect)
     Character_Shield.setFlag(SpriteFlag.Invisible, true)
     Character_Shield.setPosition(Character.x + 6, Character.y)
@@ -326,17 +498,26 @@ function AttachBow () {
         Character_Bow.setFlag(SpriteFlag.Invisible, true)
     })
 }
+sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSprite) {
+    while (HasState(STATE_ATTACK)) {
+        DoDamage(otherSprite, sprite)
+        pause(IFrameDuration)
+    }
+})
 let Character_Bow: Sprite = null
 let Character_Shield: Sprite = null
 let j = 0
 let CharacterStates: string[] = []
 let STATE_AIMING_DURATION = 0
-let ENTITY_ANIM_HURT: Image[][][] = []
+let ENTITY_SPEED_INDEX: number[][] = []
+let ENTITY_HEALTH_INDEX: number[][] = []
 let ENTITY_ANIM_IDLERUN: Image[][][] = []
+let IFrameDuration = 0
 let STATE_IDLERUN = ""
 let STATE_AIMING = ""
 let STATE_BLOCKING = ""
 let STATE_ATTACK = ""
+let ENTITY_HURT_FRAME: Image[][] = []
 let STATE_ULTIMATE = ""
 let Entity: Sprite = null
 let STATE_JUMP = ""
@@ -348,7 +529,7 @@ StartingConstruction()
 CreatePlayerComponent()
 tiles.setCurrentTilemap(tilemap`level1`)
 tiles.placeOnTile(Character, tiles.getTileLocation(2, 6))
-AddEntity(21, tiles.getTileLocation(8, 6))
+AddEntity(11, tiles.getTileLocation(8, 6))
 game.onUpdate(function () {
     // Debug display of the current state list
     Character.sayText(CharacterStates, 100, false)
