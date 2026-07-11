@@ -22,7 +22,7 @@
     "targetVersions": {
         "branch": "stable4.0",
         "tag": "v4.0.14",
-        "commits": "https://github.com/microsoft/pxt-arcade/commits/a33ec9537bc6c5fada2a3b02aac57a4bc9a10803",
+        "commits": "https://github.com",
         "target": "4.0.14",
         "pxt": "12.2.34",
         "targetId": "arcade"
@@ -30,5 +30,23 @@
     "supportedTargets": [
         "arcade"
     ],
-    "preferredEditor": "blocksprj"
+    "preferredEditor": "tsprj",
+    "palette": [
+        "#000000",
+        "#ffffff",
+        "#ff2121",
+        "#ff93c4",
+        "#ff8135",
+        "#fff609",
+        "#249ca3",
+        "#78dc52",
+        "#003fad",
+        "#87f2ff",
+        "#8e2ec4",
+        "#a4839f",
+        "#5c406c",
+        "#e5cdc4",
+        "#91463d",
+        "#000000"
+    ]
 }
