@@ -1,5 +1,6 @@
 namespace SpriteKind {
     export const Effect = SpriteKind.create()
+    export const Explosion = SpriteKind.create()
 }
 function AddEffect (Duration: number, x: number, y: number) {
     EffectSystem = sprites.create(img`
@@ -21,8 +22,86 @@ function AddEffect (Duration: number, x: number, y: number) {
         . . . . . . . . . . . . . . . . 
         `, SpriteKind.Effect)
 }
-function AddExplosion (ExplosionType: string, Size: number, Damage: number, x: number, y: number) {
-	
+function AddExplosion (ExplosionType: string, Size: number, Damage: number, x: number, y: number, PlayerImmune: boolean) {
+    Explosion = sprites.create(assets.image`ExplosionSprite`, SpriteKind.Explosion)
+    sprites.setDataBoolean(Explosion, "PlayerImmune", PlayerImmune)
+    sprites.setDataNumber(Explosion, "BlastDamage", Damage)
+    Explosion.setPosition(x, y)
+    Explosion.scale = Size
+    scene.cameraShake(Size * 2, 400)
+    if (ExplosionType == EXPLOSION_MAGIC) {
+        animation.runImageAnimation(
+        Explosion,
+        [img`
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            `],
+        500,
+        false
+        )
+    } else if (ExplosionType == EXPLOSION_FIREBALL) {
+        animation.runImageAnimation(
+        Explosion,
+        [img`
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            `],
+        500,
+        false
+        )
+    } else if (ExplosionType == EXPLOSION_TNT) {
+        animation.runImageAnimation(
+        Explosion,
+        [img`
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            . . . . . . . . . . . . . . . . 
+            `],
+        500,
+        false
+        )
+    }
 }
 controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
     if (INPUT_MODE == "Game") {
@@ -30,7 +109,7 @@ controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
     }
 })
 scene.onHitWall(SpriteKind.Player, function (sprite, location) {
-    if (Character.isHittingTile(CollisionDirection.Bottom)) {
+    if (Character.isHittingTile(CollisionDirection.Bottom) && HasState(STATE_JUMP)) {
         RemoveState(STATE_JUMP)
     }
 })
@@ -135,6 +214,9 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     }
 })
 function StartingConstruction () {
+    EXPLOSION_TNT = "TNT"
+    EXPLOSION_MAGIC = "MAGIC"
+    EXPLOSION_FIREBALL = "FIREBALL"
     INPUT_MODE = "Game"
     STATE_JUMP = "Jump"
     STATE_ATTACK = "Attack"
@@ -366,8 +448,10 @@ function AddVectorFireball (Instigator: Sprite, Target: Sprite, AccuracyRange: n
 }
 controller.down.onEvent(ControllerButtonEvent.Released, function () {
     if (INPUT_MODE == "Game") {
-        RemoveState(STATE_AIMING)
-        AimingBow(false)
+        if (!(HasState(STATE_ULTIMATE))) {
+            RemoveState(STATE_AIMING)
+            AimingBow(false)
+        }
     }
 })
 function HasState (State: string) {
@@ -469,12 +553,14 @@ function RemoveState (State: string) {
     }
     if (CharacterStates.length == 0) {
         AddState(STATE_IDLERUN, true, [], false)
-        PlayCheckedTimedStateAnimation(0, false)
     }
+    PlayCheckedTimedStateAnimation(0, false)
 }
 controller.left.onEvent(ControllerButtonEvent.Released, function () {
     if (INPUT_MODE == "Game") {
-        RemoveState(STATE_BLOCKING)
+        if (!(HasState(STATE_ULTIMATE))) {
+            RemoveState(STATE_BLOCKING)
+        }
     }
 })
 function GetEntity_Attack_Damage (ID: number) {
@@ -498,7 +584,7 @@ function DoContactDamage (Victim: Sprite, Instigator: Sprite) {
         })
     }
     if (sprites.readDataNumber(Victim, "Health") <= 0) {
-    	
+        sprites.destroy(Victim, effects.spray, 100)
     }
 }
 function GetEntity_Speed_Index (ID: number) {
@@ -564,6 +650,65 @@ controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
         DoAction(STATE_ATTACK)
     }
 })
+function ChargeAndReleaseUltimate () {
+    ULTIMATE_CHARGE = 0
+    while (HasState(STATE_ULTIMATE)) {
+        ULTIMATE_CHARGE += 20
+        if (ULTIMATE_CHARGE == 800) {
+            animation.runImageAnimation(
+            Character,
+            assets.animation`playerAnimations5`,
+            100,
+            true
+            )
+        }
+        if (ULTIMATE_CHARGE == 1600) {
+            animation.runImageAnimation(
+            Character,
+            assets.animation`playerAnimations6`,
+            100,
+            true
+            )
+        }
+        pause(20)
+    }
+    if (ULTIMATE_CHARGE > 800) {
+        INPUT_MODE = "Locked"
+        music.play(music.createSoundEffect(WaveShape.Noise, 1105, 1, 195, 255, 1250, SoundExpressionEffect.None, InterpolationCurve.Logarithmic), music.PlaybackMode.InBackground)
+        animation.runImageAnimation(
+        Character,
+        assets.animation`player_ultimate_in_air`,
+        325,
+        false
+        )
+        Character.y += -20
+        timer.after(20, function () {
+            Character.vy = -250
+            Character.vx = 20
+            Character.ax = -75
+            timer.after(60, function () {
+                Character.vx = 100
+            })
+        })
+        timer.after(200, function () {
+            pauseUntil(() => Character.isHittingTile(CollisionDirection.Bottom))
+            music.play(music.melodyPlayable(music.bigCrash), music.PlaybackMode.InBackground)
+            music.play(music.melodyPlayable(music.smallCrash), music.PlaybackMode.InBackground)
+            music.play(music.melodyPlayable(music.zapped), music.PlaybackMode.InBackground)
+            music.play(music.createSoundEffect(WaveShape.Noise, 1825, 1, 255, 0, 200, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
+            animation.runImageAnimation(
+            Character,
+            assets.animation`playerAnimations3`,
+            100,
+            false
+            )
+            scene.cameraShake(ULTIMATE_CHARGE / 200, 300)
+            Character.vx = 0
+            Character.ax = 0
+            AddExplosion(EXPLOSION_MAGIC, 1, 1, 1, 1, true)
+        })
+    }
+}
 function GetEntity_Health_Index (ID: number) {
     return ENTITY_HEALTH_INDEX[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
 }
@@ -628,7 +773,7 @@ function DoAction (Action: string) {
                 Character.vy = -135
                 PlayCheckedTimedStateAnimation(100, false)
                 if (HasState(STATE_AIMING)) {
-                    angle = Math.min(angle + randint(20, 40), 90)
+                    angle = Math.min(angle + randint(28, 33), 90)
                 }
             }
         }
@@ -641,7 +786,9 @@ function DoAction (Action: string) {
         STATE_BLOCKING,
         STATE_JUMP
         ], true)
+        AimingBow(false)
         PlayCheckedTimedStateAnimation(0, false)
+        ChargeAndReleaseUltimate()
     }
 }
 function AttachShield () {
@@ -679,6 +826,7 @@ sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSp
 let STATE_AIMING_DURATION = 0
 let Character_Bow: Sprite = null
 let Character_Shield: Sprite = null
+let ULTIMATE_CHARGE = 0
 let PlayerArrowDistance = 0
 let PlayerArrowDY = 0
 let PlayerArrowDX = 0
@@ -705,6 +853,10 @@ let Entity: Sprite = null
 let STATE_JUMP = ""
 let STATE_CASTING = ""
 let INPUT_MODE = ""
+let EXPLOSION_TNT = ""
+let EXPLOSION_FIREBALL = ""
+let EXPLOSION_MAGIC = ""
+let Explosion: Sprite = null
 let EffectSystem: Sprite = null
 let Character: Sprite = null
 StartingConstruction()
