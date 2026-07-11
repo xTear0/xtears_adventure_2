@@ -28,6 +28,9 @@ function HasState (State: string) {
     return CharacterStates.indexOf(State) >= 0
 }
 function AddState (State: string, SelfMutex: boolean, MutexStates: string[], AddFirst: boolean) {
+    if (HasState(STATE_IDLERUN)) {
+        CharacterStates.removeAt(CharacterStates.indexOf(STATE_IDLERUN))
+    }
     for (let index = 0; index <= CharacterStates.length - 1; index++) {
         if (MutexStates.indexOf(CharacterStates[index]) >= 0 || (SelfMutex && CharacterStates[index]) == State) {
             CharacterStates.removeAt(index)
@@ -44,10 +47,69 @@ controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
         DoAction(STATE_BLOCKING)
     }
 })
+function PlayCheckedTimedStateAnimation (AnimationDuration: number, RemoveState2: boolean) {
+    if (CharacterStates[0] == STATE_ATTACK) {
+        animation.runImageAnimation(
+        Character,
+        assets.animation`player_attack`,
+        50,
+        false
+        )
+    }
+    if (CharacterStates[0] == STATE_AIMING) {
+        animation.runImageAnimation(
+        Character,
+        assets.animation`player_aiming`,
+        100,
+        true
+        )
+    }
+    if (CharacterStates[0] == STATE_BLOCKING) {
+        animation.runImageAnimation(
+        Character,
+        assets.animation`player_blocking`,
+        100,
+        true
+        )
+    }
+    if (CharacterStates[0] == STATE_IDLERUN) {
+        animation.runImageAnimation(
+        Character,
+        assets.animation`player_idlerun`,
+        175,
+        true
+        )
+    }
+    if (CharacterStates[0] == STATE_JUMP) {
+        animation.runImageAnimation(
+        Character,
+        assets.animation`player_jump`,
+        100,
+        false
+        )
+    }
+    if (CharacterStates[0] == STATE_CASTING) {
+        animation.runImageAnimation(
+        Character,
+        assets.animation`player_idlerun`,
+        100,
+        true
+        )
+    }
+    if (RemoveState2) {
+        timer.after(AnimationDuration, function () {
+            RemoveState(CharacterStates[0])
+        })
+    }
+}
 function RemoveState (State: string) {
     j = CharacterStates.indexOf(State)
     if (j >= 0) {
         CharacterStates.removeAt(j)
+    }
+    if (CharacterStates.length == 0) {
+        AddState(STATE_IDLERUN, true, [], false)
+        PlayCheckedTimedStateAnimation(0, false)
     }
 }
 controller.left.onEvent(ControllerButtonEvent.Released, function () {
@@ -61,29 +123,12 @@ controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
     }
 })
 function CreatePlayerComponent () {
-    Character = sprites.create(img`
-        2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-        2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-        2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-        2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-        2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-        2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-        2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-        2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-        2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-        2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-        2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-        2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-        2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-        2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-        2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-        2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-        `, SpriteKind.Player)
+    Character = sprites.create(assets.image`walksintoscreen2`, SpriteKind.Player)
     Character.ay = 400
     CharacterStates = []
     animation.runImageAnimation(
     Character,
-    assets.animation`walksintoscreenAnim`,
+    assets.animation`player_idlerun`,
     175,
     true
     )
@@ -102,25 +147,28 @@ function DoAction (Action: string) {
     if (!(HasState(STATE_ULTIMATE))) {
         if (Action == STATE_ATTACK) {
             AddState(STATE_ATTACK, true, [STATE_BLOCKING, STATE_AIMING, STATE_CASTING], true)
-            Character_RecycleState(STATE_ATTACK, 400)
+            PlayCheckedTimedStateAnimation(150, true)
         }
         if (Action == STATE_CASTING) {
             if (!(HasState(STATE_AIMING))) {
                 AddState(STATE_CASTING, true, [STATE_BLOCKING, STATE_AIMING, STATE_ATTACK], true)
-                Character_RecycleState(STATE_CASTING, 400)
+                PlayCheckedTimedStateAnimation(400, true)
             }
         }
         if (Action == STATE_AIMING) {
             AddState(STATE_AIMING, true, [STATE_BLOCKING, STATE_ATTACK, STATE_CASTING], true)
             STATE_AIMING_DURATION = game.runtime()
+            PlayCheckedTimedStateAnimation(0, false)
         }
         if (Action == STATE_BLOCKING) {
             AddState(STATE_BLOCKING, true, [STATE_ATTACK, STATE_AIMING, STATE_CASTING], true)
+            PlayCheckedTimedStateAnimation(0, false)
         }
         if (Action == STATE_JUMP) {
             if (Character.isHittingTile(CollisionDirection.Bottom)) {
                 AddState(STATE_JUMP, true, [], false)
                 Character.vy = -135
+                PlayCheckedTimedStateAnimation(100, false)
             }
         }
     }
@@ -134,14 +182,11 @@ function DoAction (Action: string) {
         ], true)
     }
 }
-function Character_RecycleState (State: string, AnimationDuration: number) {
-    pause(AnimationDuration)
-    RemoveState(State)
-}
 let j = 0
 let CharacterStates: string[] = []
 let STATE_AIMING_DURATION = 0
 let Character: Sprite = null
+let STATE_IDLERUN = ""
 let STATE_ULTIMATE = ""
 let STATE_CASTING = ""
 let STATE_AIMING = ""
@@ -156,12 +201,11 @@ STATE_BLOCKING = "Blocking"
 STATE_AIMING = "Aiming"
 STATE_CASTING = "Casting"
 STATE_ULTIMATE = "Ultimate"
-let STATE_IDLERUN = "IdleRun"
+STATE_IDLERUN = "IdleRun"
 CreatePlayerComponent()
-scene.setBackgroundColor(8)
 tiles.setCurrentTilemap(tilemap`level1`)
 tiles.placeOnTile(Character, tiles.getTileLocation(2, 6))
 game.onUpdate(function () {
     // Debug display of the current state list
-    Character.sayText(CharacterStates.length == 0 ? STATE_IDLERUN : CharacterStates.join(","), 100, false)
+    Character.sayText(CharacterStates, 100, false)
 })
