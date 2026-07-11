@@ -232,7 +232,7 @@ controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
     }
 })
 function CreatePlayerComponent () {
-    Character = sprites.create(assets.image`walksintoscreen2`, SpriteKind.Player)
+    Character = sprites.create(assets.image`xtear_sprite`, SpriteKind.Player)
     Character.ay = 400
     CharacterStates = []
     animation.runImageAnimation(
