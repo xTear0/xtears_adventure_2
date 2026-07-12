@@ -111,20 +111,42 @@ scene.onHitWall(SpriteKind.Player, function (sprite, location) {
     }
 })
 function AddEntity (ID: number, Location: tiles.Location) {
-    Entity = sprites.create(GetEntity_Frame_Hurt(ID), SpriteKind.Enemy)
+    Entity = sprites.create(img`
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        `, SpriteKind.Enemy)
+    sprites.setDataBoolean(Entity, "IsAlive", true)
     sprites.setDataNumber(Entity, "ID", ID)
     sprites.setDataNumber(Entity, "Health", GetEntity_Health_Index(ID))
     sprites.setDataNumber(Entity, "AttackDamage", GetEntity_Attack_Damage(ID))
     Entity.setVelocity(GetEntity_Speed_Index(ID), 0)
     Entity.setStayInScreen(false)
     Entity.setFlag(SpriteFlag.GhostThroughWalls, true)
-    animation.runImageAnimation(
-    Entity,
-    GetEntity_Anim_IdleRun(ID),
-    100,
-    true
-    )
-    tiles.placeOnTile(Entity, tiles.getTileLocation(Location.column, Location.row))
+    if (!(ID == 21)) {
+        animation.runImageAnimation(
+        Entity,
+        GetEntity_Anim_IdleRun(ID),
+        100,
+        true
+        )
+        tiles.placeOnTile(Entity, tiles.getTileLocation(Location.column, Location.row))
+    } else {
+        CreatePetrifiedWither(Entity)
+    }
 }
 function GetDirectionalSprite (Angle: number, Projectile: string) {
     if (Projectile == "arrow") {
@@ -202,6 +224,98 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
         DoAction(STATE_ULTIMATE)
     }
 })
+function CreatePetrifiedWither (Surrogate: Sprite) {
+    animation.runImageAnimation(
+    Surrogate,
+    GetEntity_Anim_IdleRun(22),
+    200,
+    true
+    )
+    Surrogate.setFlag(SpriteFlag.GhostThroughWalls, true)
+    Surrogate.z = 5
+    Surrogate.setPosition(148, 68)
+    Surrogate.vx = -10
+    PetrifiedWither_Arms = sprites.create(img`
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        `, SpriteKind.Effect)
+    animation.runImageAnimation(
+    PetrifiedWither_Arms,
+    assets.animation`petrified_wither_walking_arms`,
+    200,
+    true
+    )
+    PetrifiedWither_Arms.setFlag(SpriteFlag.GhostThroughWalls, true)
+    PetrifiedWither_Arms.setPosition(148, 68)
+    PetrifiedWither_Arms.z = 10
+    PetrifiedWither_Arms.vx = -10
+    PetrifiedWither_Star = sprites.create(img`
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        `, SpriteKind.Effect)
+    animation.runImageAnimation(
+    PetrifiedWither_Star,
+    assets.animation`myAnim`,
+    100,
+    false
+    )
+    PetrifiedWither_Star.startEffect(effects.spray)
+    PetrifiedWither_Star.setFlag(SpriteFlag.GhostThroughWalls, true)
+    timer.background(function () {
+        while (sprites.readDataBoolean(Surrogate, "IsAlive")) {
+            PetrifiedWither_Star.setPosition(Surrogate.x + 7, Surrogate.y + 10)
+            PetrifiedWither_Star.sx = randint(0.25, 3)
+            PetrifiedWither_Star.sy = randint(0.25, 1.2)
+            PetrifiedWither_Star.z = randint(1, 20)
+            music.play(music.melodyPlayable(music.spooky), music.PlaybackMode.InBackground)
+            pause(50)
+        }
+    })
+    timer.background(function () {
+        while (sprites.readDataBoolean(Surrogate, "IsAlive")) {
+            scene.cameraShake(3, 100)
+            music.play(music.melodyPlayable(music.bigCrash), music.PlaybackMode.InBackground)
+            if (Math.percentChance(33)) {
+                music.play(music.createSoundEffect(WaveShape.Noise, 200, 200, 255, 0, 60, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.UntilDone)
+                timer.after(60, function () {
+                    music.play(music.createSoundEffect(WaveShape.Noise, 200, 200, 255, 0, 60, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
+                    timer.after(60, function () {
+                        music.play(music.createSoundEffect(WaveShape.Noise, 200, 200, 255, 0, 60, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
+                    })
+                })
+            }
+            pause(440)
+        }
+    })
+}
 function GetEntity_Frame_Hurt (ID: number) {
     return ENTITY_HURT_FRAME[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
 }
@@ -229,10 +343,10 @@ function StartingConstruction () {
     assets.animation`mobAnimation3`,
     assets.animation`mobAnimation4`
     ], [
-    assets.animation`mobAnimation`,
-    assets.animation`mobAnimation2`,
-    assets.animation`mobAnimation3`,
-    assets.animation`mobAnimation4`
+    assets.animation`myAnim`,
+    assets.animation`petrified_wither_dragging_head`,
+    assets.animation`petrified_wither_walking_arms`,
+    assets.animation`petrified_wither_roar_head`
     ], [
     assets.animation`mobAnimation`,
     assets.animation`mobAnimation2`,
@@ -246,22 +360,58 @@ function StartingConstruction () {
     assets.image`mobHurt4`
     ], [
     img`
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
+        ...........................................................................
+        ...........................................................................
+        ...........................................................................
+        ...........................................................................
+        ...........................................................................
+        ...........................................c...............................
+        .........................................cc..........c.....................
+        ....................................c...c.c.....c...c......................
+        ...................................c...cc.c.a.cc....c......................
+        ................................aa.cccc...c.acca..c.c......................
+        ...............................a.aa.accacc.aaca..c.c.......................
+        ..............................ca.ca.ac.cc.ca.ca..c.c.......................
+        .............................cacacacacccccaccac.ccc........................
+        ..............................cca.aca.ccccaccacaacca.......................
+        ..............................ccaaacaccaaaaaccaacca........................
+        ..............................ccaaaaaaaaccaacacacaa.a......................
+        ...............................f99faaff99fcaaaacac.a.....c.................
+        ...............................f99faaff99fcacaca.ca.....c..................
+        ...............................f11fcaff11fcacaacc.c.....cc.c...............
+        ...............................acccfbcccccaaaaa.cac....accc................
+        ...............................bbbbfbccbbbbaaacca...a..cccc................
+        ...................c.c.........abfbfbfffbfbaaa.ca...a.caccc.a..............
+        ....................cc.........abfffffffbfbcaaaa....acaccaaaa..............
+        ....................cccc...c...fffffffffffbcffac..aaaacccaaa...............
+        ......................c.c..ff.....fffffffffffffaaafccacaaaf................
+        .......................ccca.cf.c..fffffffffffffaaaffcaaaaa9................
+        .......................cccc.cffc...fffffffffffcaaaffcccfaaa...c............
+        .....................a.cccacccf...bfffffffffffbcaafccccfabb..c.............
+        .....................aaaaccacccc..bcfffffbffbfbccbfcccfbc.c.c..............
+        ......................aaacccacfccf.bfcbffbfbbaaaabffcccffc.c...............
+        .......................faaacccffcf.bbcbccbcffbbbaffffbccfbc................
+        .......................9aaaacccfccfccccaccabbbbbbabcbccfbc....c............
+        .......................aaafcccffcffbbaaccffffffbbaa.cfffc....c.............
+        .......................bbafcccffffbbaaccf.....ffbbacfff.c..cc..............
+        .......................c.cbfcccfffbbaac........ffbacccffc.c..cc............
+        ........................cffccccfcfbbaac........bbbacccafcc.cc..............
+        ........................bfcc.cfff.bbaac.......bbb.acfcc.acc................
+        .........................c...ffff.bbbbbbb........aacfcc....................
+        ...............................fffbbbbaaa........afcf.c....................
+        ...............................f.ccccaaaaa.f...aaacff......................
+        ................................f.cccfcaaaaf..fffcfff......................
+        ...............................c.ffcfffcfffff.ffcfcf.......................
+        ..................................ffcfffcff.f.ffcf.........................
+        ..................................ccffffc.fff.ff...........................
+        .................................c.cfff..cccf.ff...........................
+        ................................c.c.fff.cc.cff.f...........................
+        ...............................c.fc.ff..c...fffccc.........................
+        ................................fc..ff.......fffc..........................
+        .................................c...f........ffff.cc......................
+        ................................c...f.........ccffcc.......................
+        .............................................cc...fff......................
+        ...........................................................................
         `,
     img`
         . . . . . . . . . . . . . . . . 
@@ -845,6 +995,8 @@ let STATE_AIMING = ""
 let STATE_BLOCKING = ""
 let STATE_ATTACK = ""
 let ENTITY_HURT_FRAME: Image[][] = []
+let PetrifiedWither_Star: Sprite = null
+let PetrifiedWither_Arms: Sprite = null
 let STATE_ULTIMATE = ""
 let Entity: Sprite = null
 let STATE_JUMP = ""
@@ -861,97 +1013,8 @@ CreatePlayerComponent()
 tiles.setCurrentTilemap(tilemap`level1`)
 tiles.placeOnTile(Character, tiles.getTileLocation(2, 6))
 AddEntity(11, tiles.getTileLocation(8, 6))
-let pet1 = sprites.create(img`
-    . . . . . . . . . . . . . . . . 
-    . . . . . . . . . . . . . . . . 
-    . . . . . . . . . . . . . . . . 
-    . . . . . . . . . . . . . . . . 
-    . . . . . . . . . . . . . . . . 
-    . . . . . . . . . . . . . . . . 
-    . . . . . . . . . . . . . . . . 
-    . . . . . . . . . . . . . . . . 
-    . . . . . . . . . . . . . . . . 
-    . . . . . . . . . . . . . . . . 
-    . . . . . . . . . . . . . . . . 
-    . . . . . . . . . . . . . . . . 
-    . . . . . . . . . . . . . . . . 
-    . . . . . . . . . . . . . . . . 
-    . . . . . . . . . . . . . . . . 
-    . . . . . . . . . . . . . . . . 
-    `, SpriteKind.Player)
-animation.runImageAnimation(
-pet1,
-assets.animation`petrified_wither_dragging`,
-200,
-true
-)
-pet1.z = 5
-let pet2 = sprites.create(img`
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    `, SpriteKind.Player)
-animation.runImageAnimation(
-pet2,
-assets.animation`petrified_wither_walking_arms`,
-200,
-true
-)
-pet2.z = 10
-let star = sprites.create(img`
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
-    `, SpriteKind.Player)
-animation.runImageAnimation(
-star,
-assets.animation`myAnim`,
-100,
-false
-)
-star.startEffect(effects.spray)
-pet1.setPosition(148, 68)
-pet2.setPosition(148, 68)
-pet1.vx = -10
-pet2.vx = -10
+AddEntity(21, tiles.getTileLocation(8, 6))
 game.onUpdate(function () {
     // Debug display of the current state list
     Character.sayText(CharacterStates, 100, false)
-})
-game.onUpdateInterval(50, function () {
-    star.setPosition(pet2.x + 7, pet2.y + 10)
-    star.sx = randint(0.25, 3)
-    star.sy = randint(0.25, 1.2)
-    star.z = randint(1, 20)
-    music.play(music.melodyPlayable(music.spooky), music.PlaybackMode.InBackground)
-})
-game.onUpdateInterval(440, function () {
-    music.play(music.melodyPlayable(music.bigCrash), music.PlaybackMode.InBackground)
-    scene.cameraShake(3, 100)
 })
