@@ -23,39 +23,36 @@ function AddEffect (Duration: number, x: number, y: number) {
         `, SpriteKind.Effect)
 }
 function AddExplosion (ExplosionType: string, Size: number, Damage: number, x: number, y: number, PlayerImmune: boolean) {
-    Explosion = sprites.create(assets.image`ExplosionSprite`, SpriteKind.Explosion)
-    sprites.setDataBoolean(Explosion, "PlayerImmune", PlayerImmune)
-    sprites.setDataNumber(Explosion, "BlastDamage", Damage)
-    Explosion.setPosition(x, y)
-    Explosion.scale = Size
-    scene.cameraShake(Size * 2, 400)
+    ExplosionEffect = sprites.create(assets.image`ExplosionSprite`, SpriteKind.Explosion)
+    sprites.setDataBoolean(ExplosionEffect, "PlayerImmune", PlayerImmune)
+    sprites.setDataNumber(ExplosionEffect, "BlastDamage", Damage)
+    ExplosionEffect.setPosition(x, y)
+    ExplosionEffect.scale = Size
+    scene.cameraShake(Size * 5, 400)
     if (ExplosionType == EXPLOSION_MAGIC) {
         animation.runImageAnimation(
-        Explosion,
-        [img`
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            `],
-        500,
+        ExplosionEffect,
+        assets.animation`effect_nuclear_blast`,
+        50,
         false
         )
+        ExplosionEffect.x += -50
+        ExplosionEffect.y += -50
+        timer.after(200, function () {
+            ExplosionEffect.scale = 1.25 * Size
+            timer.after(50, function () {
+                ExplosionEffect.scale = 1.35 * Size
+                timer.after(50, function () {
+                    ExplosionEffect.scale = 1.5 * Size
+                    timer.after(50, function () {
+                        ExplosionEffect.scale = 1.65 * Size
+                    })
+                })
+            })
+        })
     } else if (ExplosionType == EXPLOSION_FIREBALL) {
         animation.runImageAnimation(
-        Explosion,
+        ExplosionEffect,
         [img`
             . . . . . . . . . . . . . . . . 
             . . . . . . . . . . . . . . . . 
@@ -79,7 +76,7 @@ function AddExplosion (ExplosionType: string, Size: number, Damage: number, x: n
         )
     } else if (ExplosionType == EXPLOSION_TNT) {
         animation.runImageAnimation(
-        Explosion,
+        ExplosionEffect,
         [img`
             . . . . . . . . . . . . . . . . 
             . . . . . . . . . . . . . . . . 
@@ -705,7 +702,7 @@ function ChargeAndReleaseUltimate () {
             scene.cameraShake(ULTIMATE_CHARGE / 200, 300)
             Character.vx = 0
             Character.ax = 0
-            AddExplosion(EXPLOSION_MAGIC, 1, 1, 1, 1, true)
+            AddExplosion(EXPLOSION_MAGIC, 1, 20, Character.x, Character.y, true)
         })
     }
 }
@@ -856,7 +853,7 @@ let INPUT_MODE = ""
 let EXPLOSION_TNT = ""
 let EXPLOSION_FIREBALL = ""
 let EXPLOSION_MAGIC = ""
-let Explosion: Sprite = null
+let ExplosionEffect: Sprite = null
 let EffectSystem: Sprite = null
 let Character: Sprite = null
 StartingConstruction()
