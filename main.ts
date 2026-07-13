@@ -100,16 +100,9 @@ function AddExplosion (ExplosionType: string, Size: number, Damage: number, x: n
         )
     }
 }
-controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (INPUT_MODE == "Game") {
-        DoAction(STATE_CASTING)
-    }
-})
-scene.onHitWall(SpriteKind.Player, function (sprite, location) {
-    if (Character.isHittingTile(CollisionDirection.Bottom) && HasState(STATE_JUMP)) {
-        RemoveState(STATE_JUMP)
-    }
-})
+function SetInputMode (Mode: string) {
+    INPUT_MODE = Mode
+}
 function AddEntity (ID: number, Location: tiles.Location) {
     Entity = sprites.create(img`
         . . . . . . . . . . . . . . . . 
@@ -219,11 +212,6 @@ function GetDirectionalSprite (Angle: number, Projectile: string) {
             `
     }
 }
-controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (INPUT_MODE == "Game") {
-        DoAction(STATE_ULTIMATE)
-    }
-})
 function CreatePetrifiedWither (Surrogate: Sprite) {
     animation.runImageAnimation(
     Surrogate,
@@ -316,19 +304,23 @@ function CreatePetrifiedWither (Surrogate: Sprite) {
         }
     })
 }
+controller.left.onEvent(ControllerButtonEvent.Released, function () {
+    if (INPUT_MODE == INPUT_GAME) {
+        if (!(HasState(STATE_ULTIMATE))) {
+            RemoveState(STATE_BLOCKING)
+        }
+    }
+})
 function GetEntity_Frame_Hurt (ID: number) {
     return ENTITY_HURT_FRAME[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
 }
-controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (INPUT_MODE == "Game") {
-        DoAction(STATE_JUMP)
-    }
-})
 function StartingConstruction () {
     EXPLOSION_TNT = "TNT"
     EXPLOSION_MAGIC = "MAGIC"
     EXPLOSION_FIREBALL = "FIREBALL"
-    INPUT_MODE = "Game"
+    INPUT_LOCKED = "INPUT_UI"
+    INPUT_GAME = "INPUT_GAME"
+    INPUT_MODE = INPUT_GAME
     STATE_JUMP = "Jump"
     STATE_ATTACK = "Attack"
     STATE_BLOCKING = "Blocking"
@@ -593,17 +585,14 @@ function StartingConstruction () {
 function AddVectorFireball (Instigator: Sprite, Target: Sprite, AccuracyRange: number) {
 	
 }
-controller.down.onEvent(ControllerButtonEvent.Released, function () {
-    if (INPUT_MODE == "Game") {
-        if (!(HasState(STATE_ULTIMATE))) {
-            RemoveState(STATE_AIMING)
-            AimingBow(false)
-        }
-    }
-})
 function HasState (State: string) {
     return CharacterStates.indexOf(State) >= 0
 }
+scene.onHitWall(SpriteKind.Player, function (sprite, location) {
+    if (Character.isHittingTile(CollisionDirection.Bottom) && HasState(STATE_JUMP)) {
+        RemoveState(STATE_JUMP)
+    }
+})
 function AddVectorEffect (Type: string, Instigator: Sprite, Target: Sprite, AccuracyRange: number) {
 	
 }
@@ -622,11 +611,6 @@ function AddState (State: string, SelfMutex: boolean, MutexStates: string[], Add
         CharacterStates.push(State)
     }
 }
-controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (INPUT_MODE == "Game") {
-        DoAction(STATE_BLOCKING)
-    }
-})
 function PlayCheckedTimedStateAnimation (AnimationDuration: number, RemoveState2: boolean) {
     if (CharacterStates[0] == STATE_ATTACK) {
         animation.runImageAnimation(
@@ -703,13 +687,6 @@ function RemoveState (State: string) {
     }
     PlayCheckedTimedStateAnimation(0, false)
 }
-controller.left.onEvent(ControllerButtonEvent.Released, function () {
-    if (INPUT_MODE == "Game") {
-        if (!(HasState(STATE_ULTIMATE))) {
-            RemoveState(STATE_BLOCKING)
-        }
-    }
-})
 function GetEntity_Attack_Damage (ID: number) {
     return ENTITY_ATTACK_DAMAGE[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
 }
@@ -792,11 +769,6 @@ function AimingBow (_true: boolean) {
         BOW_CHARGE = 0
     }
 }
-controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (INPUT_MODE == "Game") {
-        DoAction(STATE_ATTACK)
-    }
-})
 function ChargeAndReleaseUltimate () {
     ULTIMATE_CHARGE = 0
     while (HasState(STATE_ULTIMATE)) {
@@ -820,7 +792,7 @@ function ChargeAndReleaseUltimate () {
         pause(20)
     }
     if (ULTIMATE_CHARGE > 800) {
-        INPUT_MODE = "Locked"
+        SetInputMode(INPUT_LOCKED)
         music.play(music.createSoundEffect(WaveShape.Noise, 1105, 1, 195, 255, 1250, SoundExpressionEffect.None, InterpolationCurve.Logarithmic), music.PlaybackMode.InBackground)
         animation.runImageAnimation(
         Character,
@@ -853,14 +825,34 @@ function ChargeAndReleaseUltimate () {
             Character.vx = 0
             Character.ax = 0
             AddExplosion(EXPLOSION_MAGIC, 1, 20, Character.x, Character.y, true)
+            timer.after(400, function () {
+                animation.runImageAnimation(
+                Character,
+                assets.animation`player_ultimate`,
+                50,
+                true
+                )
+                while (!(Character.x < 42)) {
+                    Character.x += -2
+                    pause(20)
+                }
+                SetInputMode(INPUT_GAME)
+                RemoveState(STATE_IDLERUN)
+            })
         })
     }
 }
 function GetEntity_Health_Index (ID: number) {
     return ENTITY_HEALTH_INDEX[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
 }
+controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (INPUT_MODE == INPUT_GAME) {
+        DoAction(STATE_BLOCKING)
+    }
+})
 function CreatePlayerComponent () {
     Character = sprites.create(assets.image`xtear_sprite`, SpriteKind.Player)
+    tiles.placeOnTile(Character, tiles.getTileLocation(2, 6))
     Character.ay = 400
     CharacterStates = []
     sprites.setDataNumber(Character, "Health", 40)
@@ -879,13 +871,13 @@ function CreatePlayerComponent () {
     Character_Bow.setFlag(SpriteFlag.Invisible, true)
     Character_Bow.setPosition(Character.x + 2, Character.y)
 }
-controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (INPUT_MODE == "Game") {
-        DoAction(STATE_AIMING)
+controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (INPUT_MODE == INPUT_GAME) {
+        DoAction(STATE_ATTACK)
     }
 })
 controller.B.onEvent(ControllerButtonEvent.Released, function () {
-    if (INPUT_MODE == "Game") {
+    if (INPUT_MODE == INPUT_GAME) {
         RemoveState(STATE_ULTIMATE)
     }
 })
@@ -964,10 +956,38 @@ function AttachBow () {
         Character_Bow.setFlag(SpriteFlag.Invisible, true)
     })
 }
+controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (INPUT_MODE == INPUT_GAME) {
+        DoAction(STATE_CASTING)
+    }
+})
+controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (INPUT_MODE == INPUT_GAME) {
+        DoAction(STATE_AIMING)
+    }
+})
+controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (INPUT_MODE == INPUT_GAME) {
+        DoAction(STATE_ULTIMATE)
+    }
+})
+controller.down.onEvent(ControllerButtonEvent.Released, function () {
+    if (INPUT_MODE == INPUT_GAME) {
+        if (!(HasState(STATE_ULTIMATE))) {
+            RemoveState(STATE_AIMING)
+            AimingBow(false)
+        }
+    }
+})
 sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSprite) {
     while (HasState(STATE_ATTACK)) {
         DoContactDamage(otherSprite, sprite)
         pause(IFrameDuration)
+    }
+})
+controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (INPUT_MODE == INPUT_GAME) {
+        DoAction(STATE_JUMP)
     }
 })
 let STATE_AIMING_DURATION = 0
@@ -984,6 +1004,7 @@ let RANGED_WEAPON_CONTROL = 0
 let BOW_CHARGE = 0
 let angle = 0
 let j = 0
+let Character: Sprite = null
 let CharacterStates: string[] = []
 let ENTITY_ATTACK_DAMAGE: number[][] = []
 let ENTITY_SPEED_INDEX: number[][] = []
@@ -991,29 +1012,28 @@ let ENTITY_HEALTH_INDEX: number[][] = []
 let ENTITY_ANIM_IDLERUN: Image[][][] = []
 let IFrameDuration = 0
 let STATE_IDLERUN = ""
+let STATE_CASTING = ""
 let STATE_AIMING = ""
-let STATE_BLOCKING = ""
 let STATE_ATTACK = ""
+let STATE_JUMP = ""
+let INPUT_LOCKED = ""
 let ENTITY_HURT_FRAME: Image[][] = []
+let STATE_BLOCKING = ""
+let STATE_ULTIMATE = ""
+let INPUT_GAME = ""
 let PetrifiedWither_Star: Sprite = null
 let PetrifiedWither_Arms: Sprite = null
-let STATE_ULTIMATE = ""
 let Entity: Sprite = null
-let STATE_JUMP = ""
-let STATE_CASTING = ""
 let INPUT_MODE = ""
 let EXPLOSION_TNT = ""
 let EXPLOSION_FIREBALL = ""
 let EXPLOSION_MAGIC = ""
 let ExplosionEffect: Sprite = null
 let EffectSystem: Sprite = null
-let Character: Sprite = null
+tiles.setCurrentTilemap(tilemap`level1`)
 StartingConstruction()
 CreatePlayerComponent()
-tiles.setCurrentTilemap(tilemap`level1`)
-tiles.placeOnTile(Character, tiles.getTileLocation(2, 6))
 AddEntity(11, tiles.getTileLocation(8, 6))
-AddEntity(21, tiles.getTileLocation(8, 6))
 game.onUpdate(function () {
     // Debug display of the current state list
     Character.sayText(CharacterStates, 100, false)
