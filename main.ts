@@ -1,7 +1,15 @@
 namespace SpriteKind {
     export const Effect = SpriteKind.create()
     export const Explosion = SpriteKind.create()
+    export const Background = SpriteKind.create()
+    export const Foreground = SpriteKind.create()
 }
+sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSprite) {
+    while (HasState(STATE_ATTACK)) {
+        DoContactDamage(otherSprite, sprite)
+        pause(IFrameDuration)
+    }
+})
 function AddEffect (Duration: number, x: number, y: number) {
     EffectSystem = sprites.create(img`
         . . . . . . . . . . . . . . . . 
@@ -98,6 +106,65 @@ function AddExplosion (ExplosionType: string, Size: number, Damage: number, x: n
         500,
         false
         )
+    }
+}
+function ScrollingBackground (Dimension: number, Scrolling: boolean) {
+    Backdrops = []
+    if (Dimension == 0) {
+        Backdrops = [[[
+        assets.image`cave_ceiling_foreground_1`,
+        assets.image`cave_ceiling_foreground_2`,
+        assets.image`cave_ceiling_foreground_3`,
+        assets.image`cave_ceiling_foreground_4`,
+        assets.image`cave_ceiling_foreground_5`
+        ], [
+        assets.image`cave_floor_foreground_1`,
+        assets.image`cave_floor_foreground_2`,
+        assets.image`cave_floor_foreground_3`,
+        assets.image`cave_floor_foreground_4`,
+        assets.image`cave_floor_foreground_5`,
+        assets.image`cave_floor_foreground_6`,
+        assets.image`cave_floor_foreground_7`
+        ]], [[
+        assets.image`cave_ceiling_background_1`,
+        assets.image`cave_ceiling_background_2`,
+        assets.image`cave_ceiling_background_3`,
+        assets.image`cave_ceiling_background_4`
+        ], [
+        assets.image`cave_floor_background_1`,
+        assets.image`cave_floor_background_2`,
+        assets.image`cave_floor_background_3`,
+        assets.image`cave_floor_background_4`,
+        assets.image`cave_floor_background_5`,
+        assets.image`cave_floor_background_6`,
+        assets.image`cave_floor_background_7`
+        ]]]
+        tiles.setCurrentTilemap(tilemap`level1`)
+        CreateForeground(0)
+        CreateBackground(0)
+        for (let index = 0; index < 2; index++) {
+            CreateForeground(LastFloorForeground.right)
+            CreateBackground(LastFloorBackground.right)
+        }
+    }
+    if (Dimension == 1) {
+    	
+    }
+    if (Dimension == 2) {
+    	
+    }
+    while (Scrolling) {
+        for (let value of sprites.allOfKind(SpriteKind.Foreground)) {
+            value.x += -2
+        }
+        pause(350)
+        for (let value2 of sprites.allOfKind(SpriteKind.Foreground)) {
+            value2.x += -2
+        }
+        for (let value3 of sprites.allOfKind(SpriteKind.Background)) {
+            value3.x += -1
+        }
+        pause(350)
     }
 }
 function SetInputMode (Mode: string) {
@@ -585,6 +652,25 @@ function StartingConstruction () {
 function AddVectorFireball (Instigator: Sprite, Target: Sprite, AccuracyRange: number) {
 	
 }
+controller.menu.onEvent(ControllerButtonEvent.Pressed, function () {
+    SetInputMode(INPUT_LOCKED)
+    myMenu = miniMenu.createMenuFromArray([miniMenu.createMenuItem("[BUY] $1M", assets.image`lootReward30`), miniMenu.createMenuItem("Golden Chestplate", assets.image`armorSlot2`)])
+    miniMenu.setStyleProperty(myMenu, miniMenu.StyleKind.All, miniMenu.StyleProperty.Padding, 0)
+    miniMenu.setFrame(myMenu, assets.image`lootReward27`)
+    while (true) {
+        miniMenu.getMenuItem(myMenu, 0).setIcon(assets.image`armorSlot1`)
+        timer.after(100, function () {
+            miniMenu.getMenuItem(myMenu, 0).setIcon(assets.image`armorSlot2`)
+            timer.after(100, function () {
+                miniMenu.getMenuItem(myMenu, 0).setIcon(assets.image`armorSlot3`)
+                timer.after(100, function () {
+                    miniMenu.getMenuItem(myMenu, 0).setIcon(assets.image`armorSlot4`)
+                })
+            })
+        })
+        pause(500)
+    }
+})
 function HasState (State: string) {
     return CharacterStates.indexOf(State) >= 0
 }
@@ -600,9 +686,9 @@ function AddState (State: string, SelfMutex: boolean, MutexStates: string[], Add
     if (HasState(STATE_IDLERUN)) {
         CharacterStates.removeAt(CharacterStates.indexOf(STATE_IDLERUN))
     }
-    for (let index = 0; index <= CharacterStates.length - 1; index++) {
-        if (MutexStates.indexOf(CharacterStates[index]) >= 0 || (SelfMutex && CharacterStates[index]) == State) {
-            CharacterStates.removeAt(index)
+    for (let index2 = 0; index2 <= CharacterStates.length - 1; index2++) {
+        if (MutexStates.indexOf(CharacterStates[index2]) >= 0 || (SelfMutex && CharacterStates[index2]) == State) {
+            CharacterStates.removeAt(index2)
         }
     }
     if (AddFirst) {
@@ -687,6 +773,11 @@ function RemoveState (State: string) {
     }
     PlayCheckedTimedStateAnimation(0, false)
 }
+controller.B.onEvent(ControllerButtonEvent.Released, function () {
+    if (INPUT_MODE == INPUT_GAME) {
+        RemoveState(STATE_ULTIMATE)
+    }
+})
 function GetEntity_Attack_Damage (ID: number) {
     return ENTITY_ATTACK_DAMAGE[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
 }
@@ -850,6 +941,13 @@ controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
         DoAction(STATE_BLOCKING)
     }
 })
+function Cutscene (Scene: number) {
+    if (Scene == 0) {
+    	
+    } else {
+    	
+    }
+}
 function CreatePlayerComponent () {
     Character = sprites.create(assets.image`xtear_sprite`, SpriteKind.Player)
     tiles.placeOnTile(Character, tiles.getTileLocation(2, 6))
@@ -871,16 +969,28 @@ function CreatePlayerComponent () {
     Character_Bow.setFlag(SpriteFlag.Invisible, true)
     Character_Bow.setPosition(Character.x + 2, Character.y)
 }
+function CreateBackground (num: number) {
+    LastCeilingBackground = sprites.create(Backdrops[1][0]._pickRandom(), SpriteKind.Background)
+    LastCeilingBackground.setFlag(SpriteFlag.Ghost, true)
+    LastCeilingBackground.setFlag(SpriteFlag.AutoDestroy, true)
+    LastCeilingBackground.bottom = scene.screenHeight() - 92
+    LastCeilingBackground.left = num
+    LastCeilingBackground.z = -101
+    LastFloorBackground = sprites.create(Backdrops[1][1]._pickRandom(), SpriteKind.Background)
+    LastFloorBackground.setFlag(SpriteFlag.Ghost, true)
+    LastFloorBackground.setFlag(SpriteFlag.AutoDestroy, true)
+    LastFloorBackground.bottom = scene.screenHeight() - 8
+    LastFloorBackground.left = num
+    LastFloorBackground.z = -101
+}
 controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
     if (INPUT_MODE == INPUT_GAME) {
         DoAction(STATE_ATTACK)
     }
 })
-controller.B.onEvent(ControllerButtonEvent.Released, function () {
-    if (INPUT_MODE == INPUT_GAME) {
-        RemoveState(STATE_ULTIMATE)
-    }
-})
+function SplashScreen () {
+	
+}
 function DoAction (Action: string) {
     if (!(HasState(STATE_ULTIMATE))) {
         if (Action == STATE_ATTACK) {
@@ -956,6 +1066,20 @@ function AttachBow () {
         Character_Bow.setFlag(SpriteFlag.Invisible, true)
     })
 }
+function CreateForeground (num: number) {
+    LastCeilingForeground = sprites.create(Backdrops[0][0]._pickRandom(), SpriteKind.Foreground)
+    LastCeilingForeground.setFlag(SpriteFlag.Ghost, true)
+    LastCeilingForeground.setFlag(SpriteFlag.AutoDestroy, false)
+    LastCeilingForeground.bottom = scene.screenHeight() - 88
+    LastCeilingForeground.left = num
+    LastCeilingForeground.z = -100
+    LastFloorForeground = sprites.create(Backdrops[0][1]._pickRandom(), SpriteKind.Foreground)
+    LastFloorForeground.setFlag(SpriteFlag.Ghost, true)
+    LastFloorForeground.setFlag(SpriteFlag.AutoDestroy, false)
+    LastFloorForeground.bottom = scene.screenHeight() - 8
+    LastFloorForeground.left = num
+    LastFloorForeground.z = -100
+}
 controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
     if (INPUT_MODE == INPUT_GAME) {
         DoAction(STATE_CASTING)
@@ -979,18 +1103,14 @@ controller.down.onEvent(ControllerButtonEvent.Released, function () {
         }
     }
 })
-sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSprite) {
-    while (HasState(STATE_ATTACK)) {
-        DoContactDamage(otherSprite, sprite)
-        pause(IFrameDuration)
-    }
-})
 controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     if (INPUT_MODE == INPUT_GAME) {
         DoAction(STATE_JUMP)
     }
 })
+let LastCeilingForeground: Sprite = null
 let STATE_AIMING_DURATION = 0
+let LastCeilingBackground: Sprite = null
 let Character_Bow: Sprite = null
 let Character_Shield: Sprite = null
 let ULTIMATE_CHARGE = 0
@@ -1006,15 +1126,14 @@ let angle = 0
 let j = 0
 let Character: Sprite = null
 let CharacterStates: string[] = []
+let myMenu: Sprite = null
 let ENTITY_ATTACK_DAMAGE: number[][] = []
 let ENTITY_SPEED_INDEX: number[][] = []
 let ENTITY_HEALTH_INDEX: number[][] = []
 let ENTITY_ANIM_IDLERUN: Image[][][] = []
-let IFrameDuration = 0
 let STATE_IDLERUN = ""
 let STATE_CASTING = ""
 let STATE_AIMING = ""
-let STATE_ATTACK = ""
 let STATE_JUMP = ""
 let INPUT_LOCKED = ""
 let ENTITY_HURT_FRAME: Image[][] = []
@@ -1025,15 +1144,21 @@ let PetrifiedWither_Star: Sprite = null
 let PetrifiedWither_Arms: Sprite = null
 let Entity: Sprite = null
 let INPUT_MODE = ""
+let LastFloorBackground: Sprite = null
+let LastFloorForeground: Sprite = null
+let Backdrops: Image[][][] = []
 let EXPLOSION_TNT = ""
 let EXPLOSION_FIREBALL = ""
 let EXPLOSION_MAGIC = ""
 let ExplosionEffect: Sprite = null
 let EffectSystem: Sprite = null
+let IFrameDuration = 0
+let STATE_ATTACK = ""
 tiles.setCurrentTilemap(tilemap`level1`)
 StartingConstruction()
 CreatePlayerComponent()
 AddEntity(11, tiles.getTileLocation(8, 6))
+ScrollingBackground(0, true)
 game.onUpdate(function () {
     // Debug display of the current state list
     Character.sayText(CharacterStates, 100, false)

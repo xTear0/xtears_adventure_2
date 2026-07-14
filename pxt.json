@@ -4,7 +4,8 @@
     "dependencies": {
         "device": "*",
         "Timers": "github:microsoft/arcade-timers#v1.1.0",
-        "arcade-sprite-data": "github:microsoft/arcade-sprite-data#v0.2.1"
+        "arcade-sprite-data": "github:microsoft/arcade-sprite-data#v0.2.1",
+        "arcade-mini-menu": "github:riknoll/arcade-mini-menu#v0.1.0"
     },
     "files": [
         "main.blocks",
