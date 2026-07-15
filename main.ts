@@ -4,12 +4,6 @@ namespace SpriteKind {
     export const Background = SpriteKind.create()
     export const Foreground = SpriteKind.create()
 }
-sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSprite) {
-    while (HasState(STATE_ATTACK)) {
-        DoContactDamage(otherSprite, sprite)
-        pause(IFrameDuration)
-    }
-})
 function AddEffect (Duration: number, x: number, y: number) {
     EffectSystem = sprites.create(img`
         . . . . . . . . . . . . . . . . 
@@ -30,14 +24,15 @@ function AddEffect (Duration: number, x: number, y: number) {
         . . . . . . . . . . . . . . . . 
         `, SpriteKind.Effect)
 }
-function AddExplosion (ExplosionType: string, Size: number, Damage: number, x: number, y: number, PlayerImmune: boolean) {
-    ExplosionEffect = sprites.create(assets.image`ExplosionSprite`, SpriteKind.Explosion)
-    sprites.setDataBoolean(ExplosionEffect, "PlayerImmune", PlayerImmune)
+function AddExplosion (ExplosionType: string, Size: number, Damage: number, x: number, y: number, Instigator: Sprite) {
+    ExplosionEffect = sprites.createProjectileFromSide(assets.image`ExplosionSprite`, 0, 0)
+    ExplosionEffect.setKind(SpriteKind.Explosion)
+    sprites.setDataSprite(ExplosionEffect, "Instigator", Instigator)
     sprites.setDataNumber(ExplosionEffect, "BlastDamage", Damage)
     ExplosionEffect.setPosition(x, y)
     ExplosionEffect.scale = Size
-    scene.cameraShake(Size * 5, 400)
     if (ExplosionType == EXPLOSION_MAGIC) {
+        scene.cameraShake(9, 400)
         animation.runImageAnimation(
         ExplosionEffect,
         assets.animation`effect_nuclear_blast`,
@@ -59,51 +54,18 @@ function AddExplosion (ExplosionType: string, Size: number, Damage: number, x: n
             })
         })
     } else if (ExplosionType == EXPLOSION_FIREBALL) {
+        scene.cameraShake(2, 100)
         animation.runImageAnimation(
         ExplosionEffect,
-        [img`
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            `],
-        500,
+        assets.animation`ExplosionSpriteAnim3`,
+        50,
         false
         )
     } else if (ExplosionType == EXPLOSION_TNT) {
         animation.runImageAnimation(
         ExplosionEffect,
-        [img`
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            . . . . . . . . . . . . . . . . 
-            `],
-        500,
+        assets.animation`ExplosionSpriteAnim3`,
+        50,
         false
         )
     }
@@ -153,25 +115,27 @@ function ScrollingBackground (Dimension: number, Scrolling: boolean) {
     if (Dimension == 2) {
     	
     }
-    while (Scrolling) {
-        for (let value of sprites.allOfKind(SpriteKind.Foreground)) {
-            value.x += -2
+    timer.background(function () {
+        while (Scrolling) {
+            for (let value of sprites.allOfKind(SpriteKind.Foreground)) {
+                value.x += -2
+            }
+            pause(350)
+            for (let value2 of sprites.allOfKind(SpriteKind.Foreground)) {
+                value2.x += -2
+            }
+            for (let value3 of sprites.allOfKind(SpriteKind.Background)) {
+                value3.x += -1
+            }
+            pause(350)
         }
-        pause(350)
-        for (let value2 of sprites.allOfKind(SpriteKind.Foreground)) {
-            value2.x += -2
-        }
-        for (let value3 of sprites.allOfKind(SpriteKind.Background)) {
-            value3.x += -1
-        }
-        pause(350)
-    }
+    })
 }
 function SetInputMode (Mode: string) {
     INPUT_MODE = Mode
 }
 function AddEntity (ID: number, Location: tiles.Location) {
-    Entity = sprites.create(img`
+    Entity = sprites.createProjectileFromSide(img`
         . . . . . . . . . . . . . . . . 
         . . . . . . . . . . . . . . . . 
         . . . . . . . . . . . . . . . . 
@@ -188,7 +152,8 @@ function AddEntity (ID: number, Location: tiles.Location) {
         . . . . . . . . . . . . . . . . 
         . . . . . . . . . . . . . . . . 
         . . . . . . . . . . . . . . . . 
-        `, SpriteKind.Enemy)
+        `, 0, 0)
+    Entity.setKind(SpriteKind.Enemy)
     sprites.setDataBoolean(Entity, "IsAlive", true)
     sprites.setDataNumber(Entity, "ID", ID)
     sprites.setDataNumber(Entity, "Health", GetEntity_Health_Index(ID))
@@ -196,6 +161,7 @@ function AddEntity (ID: number, Location: tiles.Location) {
     Entity.setVelocity(GetEntity_Speed_Index(ID), 0)
     Entity.setStayInScreen(false)
     Entity.setFlag(SpriteFlag.GhostThroughWalls, true)
+    Entity.setFlag(SpriteFlag.AutoDestroy, true)
     if (!(ID == 21)) {
         animation.runImageAnimation(
         Entity,
@@ -649,9 +615,30 @@ function StartingConstruction () {
     10
     ]]
 }
-function AddVectorFireball (Instigator: Sprite, Target: Sprite, AccuracyRange: number) {
-	
+function AddVectorFireball (Instigator: Sprite, x: number, y: number, AccuracySpread: number) {
+    Fireball = sprites.createProjectileFromSprite(assets.image`Fireball`, Instigator, 0, 0)
+    sprites.setDataSprite(Fireball, "Instigator", Instigator)
+    sprites.setDataString(Fireball, "ProjectileType", "PROJECTILE_FIREBALL")
+    Fireball.setFlag(SpriteFlag.StayInScreen, false)
+    ProjectileDX = x - Instigator.x + randint(-1 * AccuracySpread, AccuracySpread)
+    ProjectileDY = y - Instigator.y + randint(-1 * AccuracySpread, AccuracySpread)
+    Fireball.vx = 100 * (ProjectileDX / GetDistance(Instigator.x, x, Instigator.y, y))
+    Fireball.vy = 100 * (ProjectileDY / GetDistance(Instigator.x, x, Instigator.y, y))
+    Fireball.ay = 10
+    Fireball.lifespan = 2000
+    Fireball.z = 20
+    Fireball.scale = 0.5
+    Fireball.startEffect(effects.fire, 1000)
+    music.play(music.createSoundEffect(WaveShape.Noise, 1, 1631, 255, 0, 150, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
 }
+sprites.onOverlap(SpriteKind.Projectile, SpriteKind.Player, function (sprite, otherSprite) {
+    if (sprites.readDataString(sprite, "ProjectileType") == "PROJECTILE_FIREBALL") {
+        if (!(sprites.readDataSprite(sprite, "Instigator") == otherSprite)) {
+            AddExplosion(EXPLOSION_FIREBALL, 2, 3, sprite.x, sprite.y, sprites.readDataSprite(sprite, "Instigator"))
+            sprites.destroy(sprite)
+        }
+    }
+})
 controller.menu.onEvent(ControllerButtonEvent.Pressed, function () {
     SetInputMode(INPUT_LOCKED)
     myMenu = miniMenu.createMenuFromArray([miniMenu.createMenuItem("[BUY] $1M", assets.image`lootReward30`), miniMenu.createMenuItem("Golden Chestplate", assets.image`armorSlot2`)])
@@ -674,6 +661,9 @@ controller.menu.onEvent(ControllerButtonEvent.Pressed, function () {
 function HasState (State: string) {
     return CharacterStates.indexOf(State) >= 0
 }
+sprites.onOverlap(SpriteKind.Player, SpriteKind.Explosion, function (sprite, otherSprite) {
+    DoExplosionDamage(sprite, sprites.readDataSprite(otherSprite, "Instigator"))
+})
 scene.onHitWall(SpriteKind.Player, function (sprite, location) {
     if (Character.isHittingTile(CollisionDirection.Bottom) && HasState(STATE_JUMP)) {
         RemoveState(STATE_JUMP)
@@ -741,7 +731,7 @@ function PlayCheckedTimedStateAnimation (AnimationDuration: number, RemoveState2
     if (CharacterStates[0] == STATE_CASTING) {
         animation.runImageAnimation(
         Character,
-        assets.animation`player_idlerun`,
+        assets.animation`player_casting0`,
         100,
         true
         )
@@ -804,6 +794,27 @@ function DoContactDamage (Victim: Sprite, Instigator: Sprite) {
 }
 function GetEntity_Speed_Index (ID: number) {
     return ENTITY_SPEED_INDEX[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1] * -1
+}
+function DoExplosionDamage (Victim: Sprite, Instigator: Sprite) {
+    sprites.setDataNumber(Victim, "Health", sprites.readDataNumber(Victim, "Health") - sprites.readDataNumber(Instigator, "AttackDamage"))
+    if (Victim != Character) {
+        music.play(music.createSoundEffect(WaveShape.Square, 200, 1, 255, 0, 100, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
+        animation.stopAnimation(animation.AnimationTypes.ImageAnimation, Victim)
+        Victim.setImage(GetEntity_Frame_Hurt(sprites.readDataNumber(Victim, "ID")))
+        Victim.vx += 200
+        timer.after(IFrameDuration, function () {
+            Victim.vx = GetEntity_Speed_Index(sprites.readDataNumber(Victim, "ID"))
+            animation.runImageAnimation(
+            Victim,
+            GetEntity_Anim_IdleRun(sprites.readDataNumber(Victim, "ID")),
+            100,
+            true
+            )
+        })
+    }
+    if (sprites.readDataNumber(Victim, "Health") <= 0) {
+        sprites.destroy(Victim, effects.spray, 100)
+    }
 }
 function AimingBow (_true: boolean) {
     if (_true) {
@@ -915,7 +926,7 @@ function ChargeAndReleaseUltimate () {
             scene.cameraShake(ULTIMATE_CHARGE / 200, 300)
             Character.vx = 0
             Character.ax = 0
-            AddExplosion(EXPLOSION_MAGIC, 1, 20, Character.x, Character.y, true)
+            AddExplosion(EXPLOSION_MAGIC, 1, 20, Character.x, Character.y, Character)
             timer.after(400, function () {
                 animation.runImageAnimation(
                 Character,
@@ -947,6 +958,41 @@ function Cutscene (Scene: number) {
     } else {
     	
     }
+}
+function GetClosestLivingEntity () {
+    ClosestEnemy = sprites.create(img`
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        `, SpriteKind.Effect)
+    ClosestEnemyDistance = 200
+    for (let value of sprites.allOfKind(SpriteKind.Enemy)) {
+        if (GetDistance(Character.x, value.x, Character.y, value.y) < ClosestEnemyDistance) {
+            if (sprites.readDataBoolean(value, "IsAlive")) {
+                ClosestEnemyDistance = GetDistance(Character.x, value.x, Character.y, value.y)
+                ClosestEnemy = value
+            }
+        }
+        if (sprites.allOfKind(SpriteKind.Enemy).indexOf(value) == sprites.allOfKind(SpriteKind.Enemy).length - 1) {
+            console.log("Found last enemy.")
+            return true
+        }
+    }
+    console.log("No last enemy.")
+    return false
 }
 function CreatePlayerComponent () {
     Character = sprites.create(assets.image`xtear_sprite`, SpriteKind.Player)
@@ -988,32 +1034,55 @@ controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
         DoAction(STATE_ATTACK)
     }
 })
+function GetDistance (x1: number, x2: number, y1: number, y2: number) {
+    return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
+}
+sprites.onOverlap(SpriteKind.Enemy, SpriteKind.Explosion, function (sprite, otherSprite) {
+    DoExplosionDamage(sprite, sprites.readDataSprite(otherSprite, "Instigator"))
+})
 function SplashScreen () {
 	
 }
 function DoAction (Action: string) {
     if (!(HasState(STATE_ULTIMATE))) {
-        if (Action == STATE_ATTACK) {
-            AddState(STATE_ATTACK, true, [STATE_BLOCKING, STATE_AIMING, STATE_CASTING], true)
-            PlayCheckedTimedStateAnimation(150, true)
-        }
-        if (Action == STATE_CASTING) {
-            if (!(HasState(STATE_AIMING))) {
-                AddState(STATE_CASTING, true, [STATE_BLOCKING, STATE_AIMING, STATE_ATTACK], true)
-                PlayCheckedTimedStateAnimation(400, true)
+        if (!(HasState(STATE_CASTING))) {
+            if (Action == STATE_CASTING) {
+                if (!(HasState(STATE_AIMING))) {
+                    AddState(STATE_CASTING, true, [STATE_BLOCKING, STATE_AIMING, STATE_ATTACK], true)
+                    PlayCheckedTimedStateAnimation(800, true)
+                    CastAttack()
+                }
             }
-        }
-        if (Action == STATE_AIMING) {
-            AddState(STATE_AIMING, true, [STATE_BLOCKING, STATE_ATTACK, STATE_CASTING], true)
-            STATE_AIMING_DURATION = game.runtime()
-            PlayCheckedTimedStateAnimation(0, false)
-            AttachBow()
-            AimingBow(true)
-        }
-        if (Action == STATE_BLOCKING) {
-            AddState(STATE_BLOCKING, true, [STATE_ATTACK, STATE_AIMING, STATE_CASTING], true)
-            PlayCheckedTimedStateAnimation(0, false)
-            AttachShield()
+            if (Action == STATE_ATTACK) {
+                AddState(STATE_ATTACK, true, [STATE_BLOCKING, STATE_AIMING, STATE_CASTING], true)
+                PlayCheckedTimedStateAnimation(150, true)
+                music.play(music.createSoundEffect(WaveShape.Noise, 1736, 259, 255, 0, 100, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
+            }
+            if (Action == STATE_AIMING) {
+                AddState(STATE_AIMING, true, [STATE_BLOCKING, STATE_ATTACK, STATE_CASTING], true)
+                STATE_AIMING_DURATION = game.runtime()
+                PlayCheckedTimedStateAnimation(0, false)
+                AttachBow()
+                AimingBow(true)
+            }
+            if (Action == STATE_BLOCKING) {
+                AddState(STATE_BLOCKING, true, [STATE_ATTACK, STATE_AIMING, STATE_CASTING], true)
+                PlayCheckedTimedStateAnimation(0, false)
+                AttachShield()
+                music.play(music.createSoundEffect(WaveShape.Noise, 634, 1686, 255, 0, 100, SoundExpressionEffect.Warble, InterpolationCurve.Logarithmic), music.PlaybackMode.InBackground)
+            }
+            if (Action == STATE_ULTIMATE) {
+                AddState(STATE_ULTIMATE, true, [
+                STATE_ATTACK,
+                STATE_AIMING,
+                STATE_CASTING,
+                STATE_BLOCKING,
+                STATE_JUMP
+                ], true)
+                AimingBow(false)
+                PlayCheckedTimedStateAnimation(0, false)
+                ChargeAndReleaseUltimate()
+            }
         }
         if (Action == STATE_JUMP) {
             if (Character.isHittingTile(CollisionDirection.Bottom)) {
@@ -1026,18 +1095,6 @@ function DoAction (Action: string) {
                 }
             }
         }
-    }
-    if (Action == STATE_ULTIMATE) {
-        AddState(STATE_ULTIMATE, true, [
-        STATE_ATTACK,
-        STATE_AIMING,
-        STATE_CASTING,
-        STATE_BLOCKING,
-        STATE_JUMP
-        ], true)
-        AimingBow(false)
-        PlayCheckedTimedStateAnimation(0, false)
-        ChargeAndReleaseUltimate()
     }
 }
 function AttachShield () {
@@ -1085,6 +1142,22 @@ controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
         DoAction(STATE_CASTING)
     }
 })
+scene.onHitWall(SpriteKind.Projectile, function (sprite, location) {
+    if (sprites.readDataString(sprite, "ProjectileType") == "PROJECTILE_FIREBALL") {
+        AddExplosion(EXPLOSION_FIREBALL, 2, 3, sprite.x, sprite.y, sprites.readDataSprite(sprite, "Instigator"))
+        sprites.destroy(sprite)
+    }
+})
+function CastAttack () {
+    for (let index = 0; index < 3; index++) {
+        if (GetClosestLivingEntity()) {
+            AddVectorFireball(Character, ClosestEnemy.x, ClosestEnemy.y, 10)
+        } else {
+            AddVectorFireball(Character, 152, 94, 20)
+        }
+        pause(50)
+    }
+}
 controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
     if (INPUT_MODE == INPUT_GAME) {
         DoAction(STATE_AIMING)
@@ -1103,6 +1176,20 @@ controller.down.onEvent(ControllerButtonEvent.Released, function () {
         }
     }
 })
+sprites.onOverlap(SpriteKind.Projectile, SpriteKind.Enemy, function (sprite, otherSprite) {
+    if (sprites.readDataString(sprite, "ProjectileType") == "PROJECTILE_FIREBALL") {
+        if (!(sprites.readDataSprite(sprite, "Instigator") == otherSprite)) {
+            AddExplosion(EXPLOSION_FIREBALL, 2, 3, sprite.x, sprite.y, sprites.readDataSprite(sprite, "Instigator"))
+            sprites.destroy(sprite)
+        }
+    }
+})
+sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSprite) {
+    while (HasState(STATE_ATTACK)) {
+        DoContactDamage(otherSprite, sprite)
+        pause(IFrameDuration)
+    }
+})
 controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     if (INPUT_MODE == INPUT_GAME) {
         DoAction(STATE_JUMP)
@@ -1113,6 +1200,8 @@ let STATE_AIMING_DURATION = 0
 let LastCeilingBackground: Sprite = null
 let Character_Bow: Sprite = null
 let Character_Shield: Sprite = null
+let ClosestEnemyDistance = 0
+let ClosestEnemy: Sprite = null
 let ULTIMATE_CHARGE = 0
 let PlayerArrowDistance = 0
 let PlayerArrowDY = 0
@@ -1127,13 +1216,18 @@ let j = 0
 let Character: Sprite = null
 let CharacterStates: string[] = []
 let myMenu: Sprite = null
+let ProjectileDY = 0
+let ProjectileDX = 0
+let Fireball: Sprite = null
 let ENTITY_ATTACK_DAMAGE: number[][] = []
 let ENTITY_SPEED_INDEX: number[][] = []
 let ENTITY_HEALTH_INDEX: number[][] = []
 let ENTITY_ANIM_IDLERUN: Image[][][] = []
+let IFrameDuration = 0
 let STATE_IDLERUN = ""
 let STATE_CASTING = ""
 let STATE_AIMING = ""
+let STATE_ATTACK = ""
 let STATE_JUMP = ""
 let INPUT_LOCKED = ""
 let ENTITY_HURT_FRAME: Image[][] = []
@@ -1152,12 +1246,20 @@ let EXPLOSION_FIREBALL = ""
 let EXPLOSION_MAGIC = ""
 let ExplosionEffect: Sprite = null
 let EffectSystem: Sprite = null
-let IFrameDuration = 0
-let STATE_ATTACK = ""
+spriteutils.setConsoleOverlay(false)
 tiles.setCurrentTilemap(tilemap`level1`)
 StartingConstruction()
 CreatePlayerComponent()
-AddEntity(11, tiles.getTileLocation(8, 6))
+AddEntity(11, tiles.getTileLocation(10, 6))
+timer.after(500, function () {
+    AddEntity(11, tiles.getTileLocation(10, 6))
+    timer.after(500, function () {
+        AddEntity(11, tiles.getTileLocation(10, 6))
+        timer.after(500, function () {
+            AddEntity(11, tiles.getTileLocation(10, 6))
+        })
+    })
+})
 ScrollingBackground(0, true)
 game.onUpdate(function () {
     // Debug display of the current state list
