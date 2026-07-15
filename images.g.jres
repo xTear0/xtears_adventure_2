@@ -1084,6 +1084,11 @@
         "mimeType": "image/x-mkcd-f4",
         "displayName": "Fireball"
     },
+    "image88": {
+        "data": "hwQKAAoAAACqqqqqqgAAAMrMzMysAAAAyszMzKwAAADKzMzMrAAAAMrMzMysAAAAyszMzKwAAADKzMzMrAAAAMrMzMysAAAAyszMzKwAAACqqqqqqgAAAA==",
+        "mimeType": "image/x-mkcd-f4",
+        "displayName": "Slot"
+    },
     "animation1": {
         "namespace": "myImages",
         "id": "animation1",

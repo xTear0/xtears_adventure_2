@@ -3,7 +3,17 @@ namespace SpriteKind {
     export const Explosion = SpriteKind.create()
     export const Background = SpriteKind.create()
     export const Foreground = SpriteKind.create()
+    export const InventorySlot = SpriteKind.create()
 }
+namespace StatusBarKind {
+    export const XP = StatusBarKind.create()
+}
+sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSprite) {
+    while (HasState(STATE_ATTACK)) {
+        DoContactDamage(otherSprite, sprite)
+        pause(IFrameDuration)
+    }
+})
 function AddEffect (Duration: number, x: number, y: number) {
     EffectSystem = sprites.create(img`
         . . . . . . . . . . . . . . . . 
@@ -347,6 +357,16 @@ controller.left.onEvent(ControllerButtonEvent.Released, function () {
 function GetEntity_Frame_Hurt (ID: number) {
     return ENTITY_HURT_FRAME[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
 }
+function InventorySlotManager () {
+    info.changeScoreBy(1)
+    for (let index = 0; index <= 7; index++) {
+        Slot = sprites.createProjectileFromSide(assets.image`Slot`, 0, 0)
+        Slot.setKind(SpriteKind.InventorySlot)
+        Slot.setPosition(scene.cameraProperty(CameraProperty.Left) + (24 + 9 * index), scene.cameraProperty(CameraProperty.Top) + 28)
+        sprites.setDataNumber(Slot, "Slot", index + 1)
+        Slot.z = 10
+    }
+}
 function StartingConstruction () {
     EXPLOSION_TNT = "TNT"
     EXPLOSION_MAGIC = "MAGIC"
@@ -631,14 +651,6 @@ function AddVectorFireball (Instigator: Sprite, x: number, y: number, AccuracySp
     Fireball.startEffect(effects.fire, 1000)
     music.play(music.createSoundEffect(WaveShape.Noise, 1, 1631, 255, 0, 150, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
 }
-sprites.onOverlap(SpriteKind.Projectile, SpriteKind.Player, function (sprite, otherSprite) {
-    if (sprites.readDataString(sprite, "ProjectileType") == "PROJECTILE_FIREBALL") {
-        if (!(sprites.readDataSprite(sprite, "Instigator") == otherSprite)) {
-            AddExplosion(EXPLOSION_FIREBALL, 2, 3, sprite.x, sprite.y, sprites.readDataSprite(sprite, "Instigator"))
-            sprites.destroy(sprite)
-        }
-    }
-})
 controller.menu.onEvent(ControllerButtonEvent.Pressed, function () {
     SetInputMode(INPUT_LOCKED)
     myMenu = miniMenu.createMenuFromArray([miniMenu.createMenuItem("[BUY] $1M", assets.image`lootReward30`), miniMenu.createMenuItem("Golden Chestplate", assets.image`armorSlot2`)])
@@ -661,9 +673,6 @@ controller.menu.onEvent(ControllerButtonEvent.Pressed, function () {
 function HasState (State: string) {
     return CharacterStates.indexOf(State) >= 0
 }
-sprites.onOverlap(SpriteKind.Player, SpriteKind.Explosion, function (sprite, otherSprite) {
-    DoExplosionDamage(sprite, sprites.readDataSprite(otherSprite, "Instigator"))
-})
 scene.onHitWall(SpriteKind.Player, function (sprite, location) {
     if (Character.isHittingTile(CollisionDirection.Bottom) && HasState(STATE_JUMP)) {
         RemoveState(STATE_JUMP)
@@ -792,6 +801,14 @@ function DoContactDamage (Victim: Sprite, Instigator: Sprite) {
         sprites.destroy(Victim, effects.spray, 100)
     }
 }
+sprites.onOverlap(SpriteKind.Projectile, SpriteKind.Player, function (sprite, otherSprite) {
+    if (sprites.readDataString(sprite, "ProjectileType") == "PROJECTILE_FIREBALL") {
+        if (!(sprites.readDataSprite(sprite, "Instigator") == otherSprite)) {
+            AddExplosion(EXPLOSION_FIREBALL, 2, 3, sprite.x, sprite.y, sprites.readDataSprite(sprite, "Instigator"))
+            sprites.destroy(sprite)
+        }
+    }
+})
 function GetEntity_Speed_Index (ID: number) {
     return ENTITY_SPEED_INDEX[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1] * -1
 }
@@ -871,6 +888,9 @@ function AimingBow (_true: boolean) {
         BOW_CHARGE = 0
     }
 }
+sprites.onOverlap(SpriteKind.Enemy, SpriteKind.Explosion, function (sprite, otherSprite) {
+    DoExplosionDamage(sprite, sprites.readDataSprite(otherSprite, "Instigator"))
+})
 function ChargeAndReleaseUltimate () {
     ULTIMATE_CHARGE = 0
     while (HasState(STATE_ULTIMATE)) {
@@ -952,6 +972,12 @@ controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
         DoAction(STATE_BLOCKING)
     }
 })
+scene.onHitWall(SpriteKind.Projectile, function (sprite, location) {
+    if (sprites.readDataString(sprite, "ProjectileType") == "PROJECTILE_FIREBALL") {
+        AddExplosion(EXPLOSION_FIREBALL, 2, 3, sprite.x, sprite.y, sprites.readDataSprite(sprite, "Instigator"))
+        sprites.destroy(sprite)
+    }
+})
 function Cutscene (Scene: number) {
     if (Scene == 0) {
     	
@@ -979,14 +1005,14 @@ function GetClosestLivingEntity () {
         . . . . . . . . . . . . . . . . 
         `, SpriteKind.Effect)
     ClosestEnemyDistance = 200
-    for (let value of sprites.allOfKind(SpriteKind.Enemy)) {
-        if (GetDistance(Character.x, value.x, Character.y, value.y) < ClosestEnemyDistance) {
-            if (sprites.readDataBoolean(value, "IsAlive")) {
-                ClosestEnemyDistance = GetDistance(Character.x, value.x, Character.y, value.y)
-                ClosestEnemy = value
+    for (let value4 of sprites.allOfKind(SpriteKind.Enemy)) {
+        if (GetDistance(Character.x, value4.x, Character.y, value4.y) < ClosestEnemyDistance) {
+            if (sprites.readDataBoolean(value4, "IsAlive")) {
+                ClosestEnemyDistance = GetDistance(Character.x, value4.x, Character.y, value4.y)
+                ClosestEnemy = value4
             }
         }
-        if (sprites.allOfKind(SpriteKind.Enemy).indexOf(value) == sprites.allOfKind(SpriteKind.Enemy).length - 1) {
+        if (sprites.allOfKind(SpriteKind.Enemy).indexOf(value4) == sprites.allOfKind(SpriteKind.Enemy).length - 1) {
             console.log("Found last enemy.")
             return true
         }
@@ -1000,6 +1026,9 @@ function CreatePlayerComponent () {
     Character.ay = 400
     CharacterStates = []
     sprites.setDataNumber(Character, "Health", 40)
+    sprites.setDataNumber(Character, "Mana", 100)
+    sprites.setDataNumber(Character, "XP", 0)
+    SetupStatusBars()
     animation.runImageAnimation(
     Character,
     assets.animation`player_idlerun`,
@@ -1037,9 +1066,6 @@ controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
 function GetDistance (x1: number, x2: number, y1: number, y2: number) {
     return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
 }
-sprites.onOverlap(SpriteKind.Enemy, SpriteKind.Explosion, function (sprite, otherSprite) {
-    DoExplosionDamage(sprite, sprites.readDataSprite(otherSprite, "Instigator"))
-})
 function SplashScreen () {
 	
 }
@@ -1137,15 +1163,57 @@ function CreateForeground (num: number) {
     LastFloorForeground.left = num
     LastFloorForeground.z = -100
 }
+function SetupStatusBars () {
+    TEXT_HP = textsprite.create("HP", 12, 2)
+    TEXT_HP.setMaxFontHeight(5)
+    TEXT_HP.setIcon(img`
+        . c c c . c c c . 
+        c 3 3 2 c 2 2 2 c 
+        c 3 2 2 2 2 2 2 c 
+        c 2 2 2 2 2 2 2 c 
+        . c 2 2 2 2 2 c . 
+        . . c 2 2 2 c . . 
+        . . . c 2 c . . . 
+        . . . . c . . . . 
+        `)
+    TEXT_HP.setPosition(12, 5)
+    TEXT_HP.z = 1000
+    SB_Player_HP = statusbars.create(85, 6, StatusBarKind.Health)
+    SB_Player_HP.setColor(3, 2)
+    SB_Player_HP.setBarBorder(1, 12)
+    SB_Player_HP.setPosition(64, 5)
+    SB_Player_HP.max = 40
+    TEXT_MANA = textsprite.create("MP", 8, 9)
+    TEXT_MANA.setMaxFontHeight(5)
+    TEXT_MANA.setIcon(img`
+        . . . . . . . . . 
+        . . . e e e . . . 
+        . . c c c c c . . 
+        . . . c 9 c . . . 
+        . . c 9 9 7 c . . 
+        . c 9 9 9 9 7 c . 
+        . c c c c c c c . 
+        . . . . . . . . . 
+        `)
+    TEXT_MANA.setPosition(12, 14)
+    TEXT_MANA.z = 1000
+    SB_Player_Mana = statusbars.create(85, 6, StatusBarKind.Magic)
+    SB_Player_Mana.setColor(9, 8)
+    SB_Player_Mana.setBarBorder(1, 8)
+    SB_Player_Mana.setPosition(64, 14)
+    SB_Player_Mana.max = 100
+    TEXT_XP = textsprite.create("XP", 12, 5)
+    TEXT_XP.setMaxFontHeight(4)
+    TEXT_XP.setPosition(12, 116)
+    SB_Player_XP = statusbars.create(85, 4, StatusBarKind.XP)
+    SB_Player_XP.setColor(5, 4)
+    SB_Player_XP.setBarBorder(1, 12)
+    SB_Player_XP.setPosition(64, 116)
+    SB_Player_XP.max = 1000
+}
 controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
     if (INPUT_MODE == INPUT_GAME) {
         DoAction(STATE_CASTING)
-    }
-})
-scene.onHitWall(SpriteKind.Projectile, function (sprite, location) {
-    if (sprites.readDataString(sprite, "ProjectileType") == "PROJECTILE_FIREBALL") {
-        AddExplosion(EXPLOSION_FIREBALL, 2, 3, sprite.x, sprite.y, sprites.readDataSprite(sprite, "Instigator"))
-        sprites.destroy(sprite)
     }
 })
 function CastAttack () {
@@ -1163,6 +1231,14 @@ controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
         DoAction(STATE_AIMING)
     }
 })
+sprites.onOverlap(SpriteKind.Projectile, SpriteKind.Enemy, function (sprite, otherSprite) {
+    if (sprites.readDataString(sprite, "ProjectileType") == "PROJECTILE_FIREBALL") {
+        if (!(sprites.readDataSprite(sprite, "Instigator") == otherSprite)) {
+            AddExplosion(EXPLOSION_FIREBALL, 2, 3, sprite.x, sprite.y, sprites.readDataSprite(sprite, "Instigator"))
+            sprites.destroy(sprite)
+        }
+    }
+})
 controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
     if (INPUT_MODE == INPUT_GAME) {
         DoAction(STATE_ULTIMATE)
@@ -1176,25 +1252,20 @@ controller.down.onEvent(ControllerButtonEvent.Released, function () {
         }
     }
 })
-sprites.onOverlap(SpriteKind.Projectile, SpriteKind.Enemy, function (sprite, otherSprite) {
-    if (sprites.readDataString(sprite, "ProjectileType") == "PROJECTILE_FIREBALL") {
-        if (!(sprites.readDataSprite(sprite, "Instigator") == otherSprite)) {
-            AddExplosion(EXPLOSION_FIREBALL, 2, 3, sprite.x, sprite.y, sprites.readDataSprite(sprite, "Instigator"))
-            sprites.destroy(sprite)
-        }
-    }
-})
-sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSprite) {
-    while (HasState(STATE_ATTACK)) {
-        DoContactDamage(otherSprite, sprite)
-        pause(IFrameDuration)
-    }
+sprites.onOverlap(SpriteKind.Player, SpriteKind.Explosion, function (sprite, otherSprite) {
+    DoExplosionDamage(sprite, sprites.readDataSprite(otherSprite, "Instigator"))
 })
 controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     if (INPUT_MODE == INPUT_GAME) {
         DoAction(STATE_JUMP)
     }
 })
+let SB_Player_XP: StatusBarSprite = null
+let TEXT_XP: TextSprite = null
+let SB_Player_Mana: StatusBarSprite = null
+let TEXT_MANA: TextSprite = null
+let SB_Player_HP: StatusBarSprite = null
+let TEXT_HP: TextSprite = null
 let LastCeilingForeground: Sprite = null
 let STATE_AIMING_DURATION = 0
 let LastCeilingBackground: Sprite = null
@@ -1223,13 +1294,12 @@ let ENTITY_ATTACK_DAMAGE: number[][] = []
 let ENTITY_SPEED_INDEX: number[][] = []
 let ENTITY_HEALTH_INDEX: number[][] = []
 let ENTITY_ANIM_IDLERUN: Image[][][] = []
-let IFrameDuration = 0
 let STATE_IDLERUN = ""
 let STATE_CASTING = ""
 let STATE_AIMING = ""
-let STATE_ATTACK = ""
 let STATE_JUMP = ""
 let INPUT_LOCKED = ""
+let Slot: Sprite = null
 let ENTITY_HURT_FRAME: Image[][] = []
 let STATE_BLOCKING = ""
 let STATE_ULTIMATE = ""
@@ -1246,6 +1316,8 @@ let EXPLOSION_FIREBALL = ""
 let EXPLOSION_MAGIC = ""
 let ExplosionEffect: Sprite = null
 let EffectSystem: Sprite = null
+let IFrameDuration = 0
+let STATE_ATTACK = ""
 spriteutils.setConsoleOverlay(false)
 tiles.setCurrentTilemap(tilemap`level1`)
 StartingConstruction()
@@ -1261,6 +1333,7 @@ timer.after(500, function () {
     })
 })
 ScrollingBackground(0, true)
+InventorySlotManager()
 game.onUpdate(function () {
     // Debug display of the current state list
     Character.sayText(CharacterStates, 100, false)

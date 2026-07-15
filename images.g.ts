@@ -6117,6 +6117,19 @@ f c c 5 2 2 3 4 4 4 5 c 3 3 f .
 . . f f c c 2 3 c c 2 f f . . . 
 . . . . f f f f f f f . . . . . 
 `;
+            case "image88":
+            case "Slot":return img`
+a a a a a a a a a a 
+a c c c c c c c c a 
+a c c c c c c c c a 
+a c c c c c c c c a 
+a c c c c c c c c a 
+a c c c c c c c c a 
+a c c c c c c c c a 
+a c c c c c c c c a 
+a c c c c c c c c a 
+a a a a a a a a a a 
+`;
         }
         return null;
     })

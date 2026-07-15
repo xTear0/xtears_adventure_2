@@ -11,7 +11,7 @@
         "displayName": "myTile"
     },
     "tile2": {
-        "data": "hwQQABAAAACsysqqrKrKqszKzMqqqsqqzKzMyqqqyqrMqszKqqrKqszKysqsqsqqzMrKqqyqqqrMyqqsrKqqqszKqqqsqqqqrMzKrKqqqqqsysrKqqqqqszKysqqqqqqzMrKyqqqqqqsrMzKqsqqqszKqsqqyqqqrKyszKrKqqrMrKzMqsqqqg==",
+        "data": "hwQQABAAAACsysqqrKqqqszKzMqqqqqqzKzMyqqqqqrMqszKqqrKqszKysqsqsqqzMrKqqzKqqrMyqqsrMqqqszKqqqsyqqqrMzKrKqqqqqsysrKqqqqqszKysqqqqqszMrKyqqqqqysrMzKqqqqrMzKqsqqqqqsrKyszKqqqqzMrKzMqqqqrA==",
         "mimeType": "image/x-mkcd-f4",
         "tilemapTile": true,
         "displayName": "myTile0"
