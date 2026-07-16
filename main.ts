@@ -4,14 +4,21 @@ namespace SpriteKind {
     export const Background = SpriteKind.create()
     export const Foreground = SpriteKind.create()
     export const InventorySlot = SpriteKind.create()
+    export const Icon = SpriteKind.create()
 }
 namespace StatusBarKind {
     export const XP = StatusBarKind.create()
+    export const player = StatusBarKind.create()
 }
 sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSprite) {
-    while (HasState(STATE_ATTACK)) {
-        DoContactDamage(otherSprite, sprite)
-        pause(IFrameDuration)
+    if (HasState(STATE_ATTACK)) {
+        while (HasState(STATE_ATTACK)) {
+            DoContactDamage(otherSprite, sprite)
+            pause(IFrameDuration)
+        }
+    } else {
+        DoContactDamage(sprite, otherSprite)
+        pause(IFrameDuration * 2)
     }
 })
 function AddEffect (Duration: number, x: number, y: number) {
@@ -167,11 +174,14 @@ function AddEntity (ID: number, Location: tiles.Location) {
     sprites.setDataBoolean(Entity, "IsAlive", true)
     sprites.setDataNumber(Entity, "ID", ID)
     sprites.setDataNumber(Entity, "Health", GetEntity_Health_Index(ID))
+    sprites.setDataNumber(Entity, "MaxHealth", GetEntity_Health_Index(ID))
     sprites.setDataNumber(Entity, "AttackDamage", GetEntity_Attack_Damage(ID))
     Entity.setVelocity(GetEntity_Speed_Index(ID), 0)
     Entity.setStayInScreen(false)
     Entity.setFlag(SpriteFlag.GhostThroughWalls, true)
     Entity.setFlag(SpriteFlag.AutoDestroy, true)
+    SB_ENTITY = statusbars.create(10, 3, StatusBarKind.Health)
+    SB_ENTITY.attachToSprite(Entity, 0, 1)
     if (!(ID == 21)) {
         animation.runImageAnimation(
         Entity,
@@ -347,6 +357,20 @@ function CreatePetrifiedWither (Surrogate: Sprite) {
         }
     })
 }
+function UpdateStatusBars () {
+    let GAME_PLAYER_XP = 0
+    let GAME_PLAYER_XP_NEEDED = 0
+    SB_Player_HP.max = sprites.readDataNumber(Character, "MaxHealth")
+    SB_Player_HP.value = sprites.readDataNumber(Character, "Health")
+    SB_Player_Mana.max = sprites.readDataNumber(Character, "MaxMana")
+    SB_Player_Mana.value = sprites.readDataNumber(Character, "Mana")
+    SB_Player_XP.max = GAME_PLAYER_XP_NEEDED
+    SB_Player_XP.value = GAME_PLAYER_XP
+    for (let value of statusbars.allOfKind(StatusBarKind.Health)) {
+        value.max = sprites.readDataNumber(value.spriteAttachedTo(), "MaxHealth")
+        value.value = sprites.readDataNumber(value.spriteAttachedTo(), "Health")
+    }
+}
 controller.left.onEvent(ControllerButtonEvent.Released, function () {
     if (INPUT_MODE == INPUT_GAME) {
         if (!(HasState(STATE_ULTIMATE))) {
@@ -358,12 +382,11 @@ function GetEntity_Frame_Hurt (ID: number) {
     return ENTITY_HURT_FRAME[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
 }
 function InventorySlotManager () {
-    info.changeScoreBy(1)
-    for (let index = 0; index <= 7; index++) {
+    for (let index2 = 0; index2 <= 7; index2++) {
         Slot = sprites.createProjectileFromSide(assets.image`Slot`, 0, 0)
         Slot.setKind(SpriteKind.InventorySlot)
-        Slot.setPosition(scene.cameraProperty(CameraProperty.Left) + (24 + 9 * index), scene.cameraProperty(CameraProperty.Top) + 28)
-        sprites.setDataNumber(Slot, "Slot", index + 1)
+        Slot.setPosition(scene.cameraProperty(CameraProperty.Left) + (7 + 11 * index2), scene.cameraProperty(CameraProperty.Bottom) - 7)
+        sprites.setDataNumber(Slot, "Slot", index2 + 1)
         Slot.z = 10
     }
 }
@@ -685,9 +708,9 @@ function AddState (State: string, SelfMutex: boolean, MutexStates: string[], Add
     if (HasState(STATE_IDLERUN)) {
         CharacterStates.removeAt(CharacterStates.indexOf(STATE_IDLERUN))
     }
-    for (let index2 = 0; index2 <= CharacterStates.length - 1; index2++) {
-        if (MutexStates.indexOf(CharacterStates[index2]) >= 0 || (SelfMutex && CharacterStates[index2]) == State) {
-            CharacterStates.removeAt(index2)
+    for (let index22 = 0; index22 <= CharacterStates.length - 1; index22++) {
+        if (MutexStates.indexOf(CharacterStates[index22]) >= 0 || (SelfMutex && CharacterStates[index22]) == State) {
+            CharacterStates.removeAt(index22)
         }
     }
     if (AddFirst) {
@@ -782,8 +805,8 @@ function GetEntity_Attack_Damage (ID: number) {
 }
 function DoContactDamage (Victim: Sprite, Instigator: Sprite) {
     sprites.setDataNumber(Victim, "Health", sprites.readDataNumber(Victim, "Health") - sprites.readDataNumber(Instigator, "AttackDamage"))
+    music.play(music.createSoundEffect(WaveShape.Square, 200, 1, 255, 0, 100, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
     if (Victim != Character) {
-        music.play(music.createSoundEffect(WaveShape.Square, 200, 1, 255, 0, 100, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
         animation.stopAnimation(animation.AnimationTypes.ImageAnimation, Victim)
         Victim.setImage(GetEntity_Frame_Hurt(sprites.readDataNumber(Victim, "ID")))
         Victim.vx += 200
@@ -792,6 +815,17 @@ function DoContactDamage (Victim: Sprite, Instigator: Sprite) {
             animation.runImageAnimation(
             Victim,
             GetEntity_Anim_IdleRun(sprites.readDataNumber(Victim, "ID")),
+            100,
+            true
+            )
+        })
+    } else {
+        scene.cameraShake(5, 200)
+        Victim.setImage(assets.image`playerAnimations30`)
+        timer.after(IFrameDuration, function () {
+            animation.runImageAnimation(
+            Victim,
+            assets.animation`player_idlerun`,
             100,
             true
             )
@@ -813,17 +847,27 @@ function GetEntity_Speed_Index (ID: number) {
     return ENTITY_SPEED_INDEX[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1] * -1
 }
 function DoExplosionDamage (Victim: Sprite, Instigator: Sprite) {
-    sprites.setDataNumber(Victim, "Health", sprites.readDataNumber(Victim, "Health") - sprites.readDataNumber(Instigator, "AttackDamage"))
+    if (Victim != Instigator) {
+        sprites.setDataNumber(Victim, "Health", sprites.readDataNumber(Victim, "Health") - sprites.readDataNumber(Instigator, "AttackDamage"))
+    }
+    music.play(music.createSoundEffect(WaveShape.Square, 200, 1, 255, 0, 100, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
     if (Victim != Character) {
-        music.play(music.createSoundEffect(WaveShape.Square, 200, 1, 255, 0, 100, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
         animation.stopAnimation(animation.AnimationTypes.ImageAnimation, Victim)
         Victim.setImage(GetEntity_Frame_Hurt(sprites.readDataNumber(Victim, "ID")))
-        Victim.vx += 200
         timer.after(IFrameDuration, function () {
-            Victim.vx = GetEntity_Speed_Index(sprites.readDataNumber(Victim, "ID"))
             animation.runImageAnimation(
             Victim,
             GetEntity_Anim_IdleRun(sprites.readDataNumber(Victim, "ID")),
+            100,
+            true
+            )
+        })
+    } else {
+        Victim.setImage(assets.image`playerAnimations30`)
+        timer.after(IFrameDuration, function () {
+            animation.runImageAnimation(
+            Victim,
+            assets.animation`player_idlerun`,
             100,
             true
             )
@@ -1021,11 +1065,14 @@ function GetClosestLivingEntity () {
     return false
 }
 function CreatePlayerComponent () {
+    GAME_PLAYER_LEVEL = 1
     Character = sprites.create(assets.image`xtear_sprite`, SpriteKind.Player)
     tiles.placeOnTile(Character, tiles.getTileLocation(2, 6))
     Character.ay = 400
     CharacterStates = []
-    sprites.setDataNumber(Character, "Health", 40)
+    sprites.setDataNumber(Character, "Health", 50)
+    sprites.setDataNumber(Character, "MaxHealth", 50)
+    sprites.setDataNumber(Character, "MaxMana", 100)
     sprites.setDataNumber(Character, "Mana", 100)
     sprites.setDataNumber(Character, "XP", 0)
     SetupStatusBars()
@@ -1043,6 +1090,12 @@ function CreatePlayerComponent () {
     Character_Bow = sprites.create(assets.image`player_bow`, SpriteKind.Effect)
     Character_Bow.setFlag(SpriteFlag.Invisible, true)
     Character_Bow.setPosition(Character.x + 2, Character.y)
+    timer.background(function () {
+        while (true) {
+            PLAYER_PASSIVE_REGENERATION()
+            pause(100)
+        }
+    })
 }
 function CreateBackground (num: number) {
     LastCeilingBackground = sprites.create(Backdrops[1][0]._pickRandom(), SpriteKind.Background)
@@ -1073,7 +1126,8 @@ function DoAction (Action: string) {
     if (!(HasState(STATE_ULTIMATE))) {
         if (!(HasState(STATE_CASTING))) {
             if (Action == STATE_CASTING) {
-                if (!(HasState(STATE_AIMING))) {
+                if (!(HasState(STATE_AIMING)) && sprites.readDataNumber(Character, "Mana") > 30) {
+                    sprites.changeDataNumberBy(Character, "Mana", -30)
                     AddState(STATE_CASTING, true, [STATE_BLOCKING, STATE_AIMING, STATE_ATTACK], true)
                     PlayCheckedTimedStateAnimation(800, true)
                     CastAttack()
@@ -1164,52 +1218,45 @@ function CreateForeground (num: number) {
     LastFloorForeground.z = -100
 }
 function SetupStatusBars () {
+    ICON_CHARACTER = sprites.create(assets.image`xTear_Icon`, SpriteKind.Icon)
+    TEXT_CHARACTER_LEVEL = textsprite.create("Lv" + GAME_PLAYER_LEVEL, 12, 4)
+    TEXT_CHARACTER_LEVEL.setMaxFontHeight(5)
+    TEXT_CHARACTER_LEVEL.setPosition(scene.cameraProperty(CameraProperty.Left) + 12, scene.cameraProperty(CameraProperty.Top) + 19)
+    TEXT_CHARACTER_LEVEL.z = 1001
+    ICON_CHARACTER.setPosition(scene.cameraProperty(CameraProperty.Left) + 8, scene.cameraProperty(CameraProperty.Top) + 9)
     TEXT_HP = textsprite.create("HP", 12, 2)
     TEXT_HP.setMaxFontHeight(5)
-    TEXT_HP.setIcon(img`
-        . c c c . c c c . 
-        c 3 3 2 c 2 2 2 c 
-        c 3 2 2 2 2 2 2 c 
-        c 2 2 2 2 2 2 2 c 
-        . c 2 2 2 2 2 c . 
-        . . c 2 2 2 c . . 
-        . . . c 2 c . . . 
-        . . . . c . . . . 
-        `)
-    TEXT_HP.setPosition(12, 5)
+    TEXT_HP.setIcon(assets.image`Icon_HP`)
+    TEXT_HP.setPosition(scene.cameraProperty(CameraProperty.Left) + 26, scene.cameraProperty(CameraProperty.Top) + 5)
     TEXT_HP.z = 1000
-    SB_Player_HP = statusbars.create(85, 6, StatusBarKind.Health)
+    SB_Player_HP = statusbars.create(85, 6, StatusBarKind.player)
     SB_Player_HP.setColor(3, 2)
     SB_Player_HP.setBarBorder(1, 12)
-    SB_Player_HP.setPosition(64, 5)
+    SB_Player_HP.setPosition(scene.cameraProperty(CameraProperty.Left) + 76, scene.cameraProperty(CameraProperty.Top) + 0)
     SB_Player_HP.max = 40
     TEXT_MANA = textsprite.create("MP", 8, 9)
     TEXT_MANA.setMaxFontHeight(5)
-    TEXT_MANA.setIcon(img`
-        . . . . . . . . . 
-        . . . e e e . . . 
-        . . c c c c c . . 
-        . . . c 9 c . . . 
-        . . c 9 9 7 c . . 
-        . c 9 9 9 9 7 c . 
-        . c c c c c c c . 
-        . . . . . . . . . 
-        `)
-    TEXT_MANA.setPosition(12, 14)
+    TEXT_MANA.setIcon(assets.image`Icon_MP`)
+    TEXT_MANA.setPosition(scene.cameraProperty(CameraProperty.Left) + 26, scene.cameraProperty(CameraProperty.Top) + 13)
     TEXT_MANA.z = 1000
-    SB_Player_Mana = statusbars.create(85, 6, StatusBarKind.Magic)
+    SB_Player_Mana = statusbars.create(85, 6, StatusBarKind.player)
     SB_Player_Mana.setColor(9, 8)
     SB_Player_Mana.setBarBorder(1, 8)
-    SB_Player_Mana.setPosition(64, 14)
+    SB_Player_Mana.setPosition(scene.cameraProperty(CameraProperty.Left) + 76, scene.cameraProperty(CameraProperty.Top) + 6)
+    SB_Player_Mana.setStatusBarFlag(StatusBarFlag.SmoothTransition, false)
     SB_Player_Mana.max = 100
-    TEXT_XP = textsprite.create("XP", 12, 5)
-    TEXT_XP.setMaxFontHeight(4)
-    TEXT_XP.setPosition(12, 116)
-    SB_Player_XP = statusbars.create(85, 4, StatusBarKind.XP)
-    SB_Player_XP.setColor(5, 4)
-    SB_Player_XP.setBarBorder(1, 12)
-    SB_Player_XP.setPosition(64, 116)
+    SB_Player_XP = statusbars.create(103, 5, StatusBarKind.player)
+    SB_Player_XP.setStatusBarFlag(StatusBarFlag.SmoothTransition, false)
+    SB_Player_XP.setColor(5, 15)
+    SB_Player_XP.setBarBorder(1, 10)
+    SB_Player_XP.setPosition(scene.cameraProperty(CameraProperty.Left) + 67, scene.cameraProperty(CameraProperty.Top) + 12)
     SB_Player_XP.max = 1000
+    timer.background(function () {
+        while (true) {
+            UpdateStatusBars()
+            pause(50)
+        }
+    })
 }
 controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
     if (INPUT_MODE == INPUT_GAME) {
@@ -1224,6 +1271,16 @@ function CastAttack () {
             AddVectorFireball(Character, 152, 94, 20)
         }
         pause(50)
+    }
+}
+function PLAYER_PASSIVE_REGENERATION () {
+    if (INPUT_MODE == INPUT_GAME) {
+        if (sprites.readDataNumber(Character, "Mana") < sprites.readDataNumber(Character, "MaxMana")) {
+            sprites.changeDataNumberBy(Character, "Mana", 1)
+        }
+        if (sprites.readDataNumber(Character, "Health") < sprites.readDataNumber(Character, "MaxHealth")) {
+            sprites.changeDataNumberBy(Character, "Health", 0.25)
+        }
     }
 }
 controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
@@ -1260,17 +1317,16 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
         DoAction(STATE_JUMP)
     }
 })
-let SB_Player_XP: StatusBarSprite = null
-let TEXT_XP: TextSprite = null
-let SB_Player_Mana: StatusBarSprite = null
 let TEXT_MANA: TextSprite = null
-let SB_Player_HP: StatusBarSprite = null
 let TEXT_HP: TextSprite = null
+let TEXT_CHARACTER_LEVEL: TextSprite = null
+let ICON_CHARACTER: Sprite = null
 let LastCeilingForeground: Sprite = null
 let STATE_AIMING_DURATION = 0
 let LastCeilingBackground: Sprite = null
 let Character_Bow: Sprite = null
 let Character_Shield: Sprite = null
+let GAME_PLAYER_LEVEL = 0
 let ClosestEnemyDistance = 0
 let ClosestEnemy: Sprite = null
 let ULTIMATE_CHARGE = 0
@@ -1284,7 +1340,6 @@ let RANGED_WEAPON_CONTROL = 0
 let BOW_CHARGE = 0
 let angle = 0
 let j = 0
-let Character: Sprite = null
 let CharacterStates: string[] = []
 let myMenu: Sprite = null
 let ProjectileDY = 0
@@ -1304,8 +1359,13 @@ let ENTITY_HURT_FRAME: Image[][] = []
 let STATE_BLOCKING = ""
 let STATE_ULTIMATE = ""
 let INPUT_GAME = ""
+let SB_Player_XP: StatusBarSprite = null
+let SB_Player_Mana: StatusBarSprite = null
+let Character: Sprite = null
+let SB_Player_HP: StatusBarSprite = null
 let PetrifiedWither_Star: Sprite = null
 let PetrifiedWither_Arms: Sprite = null
+let SB_ENTITY: StatusBarSprite = null
 let Entity: Sprite = null
 let INPUT_MODE = ""
 let LastFloorBackground: Sprite = null
@@ -1320,6 +1380,7 @@ let IFrameDuration = 0
 let STATE_ATTACK = ""
 spriteutils.setConsoleOverlay(false)
 tiles.setCurrentTilemap(tilemap`level1`)
+scene.centerCameraAt(scene.cameraProperty(CameraProperty.X), scene.cameraProperty(CameraProperty.Y) + 6)
 StartingConstruction()
 CreatePlayerComponent()
 AddEntity(11, tiles.getTileLocation(10, 6))

@@ -354,11 +354,6 @@
         "mimeType": "image/x-mkcd-f4",
         "displayName": "constructArrays16"
     },
-    "image186": {
-        "data": "hwQQABAAAAAAAAACAAAgACAAAAAAAAAAAAAAACMPAAAAAAAyIg8gAiAiIiMCACICIP/zMiMzIwAgMzMyIzIDACAzMyIiMgIAIP/zMiMjIgAgIiIjAgDyDwAAADIjD/APAAAAACMPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-        "mimeType": "image/x-mkcd-f4",
-        "displayName": "playerAnimations30"
-    },
     "image187": {
         "data": "hwQaABAAAAAAAAAgAAAAACAAAAAAAAAAAAAAACIAAgAAAAAgMwIAAAAiIjIiAvAPAPI/L/M/IgIAMjMjMyIz8gAyMyMiIiPyAPI/LzMyIgAAIiIyAgAAAAAAACACAAAAAAAAMAIAAAAAAAAgAgAAAAAAAPAPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         "mimeType": "image/x-mkcd-f4",
@@ -1085,9 +1080,29 @@
         "displayName": "Fireball"
     },
     "image88": {
-        "data": "hwQKAAoAAACqqqqqqgAAAMrMzMysAAAAyszMzKwAAADKzMzMrAAAAMrMzMysAAAAyszMzKwAAADKzMzMrAAAAMrMzMysAAAAyszMzKwAAACqqqqqqgAAAA==",
+        "data": "hwQMAAwAAACqqqqqqqoAAPr/////rwAA+v////+vAAD6/////68AAPr/////rwAA+v////+vAAD6/////68AAPr/////rwAA+v////+vAAD6/////68AAPr/////rwAAqqqqqqqqAAA=",
         "mimeType": "image/x-mkcd-f4",
         "displayName": "Slot"
+    },
+    "image89": {
+        "data": "hwQOABAAAADMzMzMzMzMzMzMzMxBz8zMzMzMFETPTMxMRERBxMxEzEz/8RRBEUHMTBERFEEUwcxMERFERBTEzEz/8RRBQUTMTEREFMzM9MzMzMxBzMz8zMzMzETMzMzMzMzM/8zMzMzMzMz/zMzMzMzMzMzMzMzM",
+        "mimeType": "image/x-mkcd-f4",
+        "displayName": "xTear_Icon"
+    },
+    "image90": {
+        "data": "hwQJAAgAAADAzAAAPCMMADwiwgAsIiIMwCIiwiwiIgwsIsIALCIMAMDMAAA=",
+        "mimeType": "image/x-mkcd-f4",
+        "displayName": "Icon_HP"
+    },
+    "image91": {
+        "data": "hwQJAAgAAAAAAAAAAADADAAMnAzgzJkM4JyZDODMlwwADHwMAADADAAAAAA=",
+        "mimeType": "image/x-mkcd-f4",
+        "displayName": "Icon_MP"
+    },
+    "image186": {
+        "data": "hwQQABAAAAAAAAACAAAgACAAAAAAAAAAAAAAACMPAAAAAAAyIg8gAiAiIiMCACICIP/zMiMzIwAgMzMyIzIDACAzMyIiMgIAIP/zMiMjIgAgIiIjAgDyDwAAADIjD/APAAAAACMPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+        "mimeType": "image/x-mkcd-f4",
+        "displayName": "playerAnimations30"
     },
     "animation1": {
         "namespace": "myImages",

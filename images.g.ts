@@ -2213,25 +2213,6 @@ aaaaaaaaaaaaaaaaccc
 . . . . . . . c . . . . . . . . 
 . . . . . . . c . . . . . . . . 
 `;
-            case "image186":
-            case "playerAnimations30":return img`
-. . . . . . . . . . . . . . . . 
-. 2 . . 2 2 2 2 2 2 . . . . . . 
-. . . . 2 f 3 3 f 2 . . . . . . 
-. . . . 2 f 3 3 f 2 . . . . . . 
-. . . . 2 3 3 3 3 2 . . . . . . 
-. . . . 2 f 3 3 f 2 . . . . . . 
-2 . . 2 3 2 2 2 2 3 2 . . . . . 
-. . . 3 2 3 3 2 3 2 3 . . . . . 
-. . 3 2 2 3 3 2 3 2 3 3 . . . . 
-. . 2 2 . 2 2 2 2 . 2 2 . . . . 
-. . f f . 3 2 2 3 . f f . . . . 
-. . . . . 3 3 3 2 . . . . . . . 
-. . . . 2 3 3 2 2 2 . . . . . . 
-2 . . 2 2 2 . . 2 f f . . . . . 
-. . . 2 2 . . . . f f . . . . . 
-. . . . . . . . . . . . . . . . 
-`;
             case "image187":
             case "playerAnimations31":return img`
 ..........................
@@ -6119,16 +6100,78 @@ f c c 5 2 2 3 4 4 4 5 c 3 3 f .
 `;
             case "image88":
             case "Slot":return img`
-a a a a a a a a a a 
-a c c c c c c c c a 
-a c c c c c c c c a 
-a c c c c c c c c a 
-a c c c c c c c c a 
-a c c c c c c c c a 
-a c c c c c c c c a 
-a c c c c c c c c a 
-a c c c c c c c c a 
-a a a a a a a a a a 
+a a a a a a a a a a a a 
+a f f f f f f f f f f a 
+a f f f f f f f f f f a 
+a f f f f f f f f f f a 
+a f f f f f f f f f f a 
+a f f f f f f f f f f a 
+a f f f f f f f f f f a 
+a f f f f f f f f f f a 
+a f f f f f f f f f f a 
+a f f f f f f f f f f a 
+a f f f f f f f f f f a 
+a a a a a a a a a a a a 
+`;
+            case "image89":
+            case "xTear_Icon":return img`
+c c c c c c c c c c c c c c 
+c c c 4 4 4 4 4 4 c c c c c 
+c c c 4 f 1 1 f 4 c c c c c 
+c c c 4 f 1 1 f 4 c c c c c 
+c c c 4 1 1 1 1 4 c c c c c 
+c c c 4 f 1 1 f 4 c c c c c 
+c c 4 1 4 4 4 4 4 1 4 f f c 
+c c 1 4 1 1 4 1 1 4 4 f f c 
+c 1 4 4 1 1 4 1 c c c c c c 
+c 4 4 c 4 4 4 4 c c c c c c 
+c f f c 1 4 4 1 c c c c c c 
+c c c c 1 1 1 4 c c c c c c 
+c c c 4 1 1 4 4 4 c c c c c 
+c c 4 4 4 c c 4 f f c c c c 
+c c c c c c c c c c c c c c 
+c c c c c c c c c c c c c c 
+`;
+            case "image90":
+            case "Icon_HP":return img`
+. c c c . c c c . 
+c 3 3 2 c 2 2 2 c 
+c 3 2 2 2 2 2 2 c 
+c 2 2 2 2 2 2 2 c 
+. c 2 2 2 2 2 c . 
+. . c 2 2 2 c . . 
+. . . c 2 c . . . 
+. . . . c . . . . 
+`;
+            case "image91":
+            case "Icon_MP":return img`
+. . . . . . . . . 
+. . . e e e . . . 
+. . c c c c c . . 
+. . . c 9 c . . . 
+. . c 9 9 7 c . . 
+. c 9 9 9 9 7 c . 
+. c c c c c c c . 
+. . . . . . . . . 
+`;
+            case "image186":
+            case "playerAnimations30":return img`
+. . . . . . . . . . . . . . . . 
+. 2 . . 2 2 2 2 2 2 . . . . . . 
+. . . . 2 f 3 3 f 2 . . . . . . 
+. . . . 2 f 3 3 f 2 . . . . . . 
+. . . . 2 3 3 3 3 2 . . . . . . 
+. . . . 2 f 3 3 f 2 . . . . . . 
+2 . . 2 3 2 2 2 2 3 2 . . . . . 
+. . . 3 2 3 3 2 3 2 3 . . . . . 
+. . 3 2 2 3 3 2 3 2 3 3 . . . . 
+. . 2 2 . 2 2 2 2 . 2 2 . . . . 
+. . f f . 3 2 2 3 . f f . . . . 
+. . . . . 3 3 3 2 . . . . . . . 
+. . . . 2 3 3 2 2 2 . . . . . . 
+2 . . 2 2 2 . . 2 f f . . . . . 
+. . . 2 2 . . . . f f . . . . . 
+. . . . . . . . . . . . . . . . 
 `;
         }
         return null;
