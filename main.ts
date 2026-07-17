@@ -397,6 +397,24 @@ controller.left.onEvent(ControllerButtonEvent.Released, function () {
 })
 function ShowSplashScreen () {
     ScrollingBackground(0, true)
+    GAME_SPLASH_TEXT = textsprite.create([
+    "FINN FOR THE WINN!",
+    "MADE BY SENSEI SPENCER",
+    "TRALSE? FLUE?",
+    "BUTTER SQUISHY",
+    "Will work for coffee",
+    "GAME EDITION #2",
+    "Check out the code!",
+    "xTear's EPIC adventure!",
+    "Void Venture, iykyk",
+    "Can you find the duck?",
+    "LEGENDARY PERFORMANCE",
+    "Now with a FIRE STAFF!",
+    "WELCOME PETRIFIED WITHER"
+    ]._pickRandom(), 12, randint(1, 7))
+    GAME_SPLASH_TEXT.setKind(SpriteKind.SplashScreen)
+    GAME_SPLASH_TEXT.x = 80
+    GAME_SPLASH_TEXT.y += -32
     GAME_LOGO = sprites.create(img`
         . . . . . . . . . . . . . . . . 
         . . . . . . . . . . . . . . . . 
@@ -437,6 +455,12 @@ function ShowSplashScreen () {
     GAME_LOGO.setFlag(SpriteFlag.Invisible, true)
     GAME_PLAY_BUTTON.setFlag(SpriteFlag.Invisible, true)
     animation.runMovementAnimation(
+    GAME_SPLASH_TEXT,
+    animation.animationPresets(animation.bobbing),
+    2000,
+    true
+    )
+    animation.runMovementAnimation(
     GAME_LOGO,
     animation.animationPresets(animation.bobbing),
     2000,
@@ -463,9 +487,11 @@ function ShowSplashScreen () {
     timer.after(1, function () {
         GAME_LOGO.setFlag(SpriteFlag.Invisible, false)
         GAME_PLAY_BUTTON.setFlag(SpriteFlag.Invisible, false)
-        timer.after(500, function () {
+    })
+    timer.background(function () {
+        while (false) {
         	
-        })
+        }
     })
 }
 function GetEntity_Frame_Hurt (ID: number) {
@@ -1480,6 +1506,7 @@ let TEXT_CHARACTER_LEVEL: TextSprite = null
 let ENTITY_HURT_FRAME: Image[][] = []
 let GAME_PLAY_BUTTON: Sprite = null
 let GAME_LOGO: Sprite = null
+let GAME_SPLASH_TEXT: TextSprite = null
 let STATE_BLOCKING = ""
 let STATE_ULTIMATE = ""
 let INPUT_GAME = ""
