@@ -5,6 +5,7 @@ namespace SpriteKind {
     export const Foreground = SpriteKind.create()
     export const InventorySlot = SpriteKind.create()
     export const Icon = SpriteKind.create()
+    export const SplashScreen = SpriteKind.create()
 }
 namespace StatusBarKind {
     export const XP = StatusBarKind.create()
@@ -138,13 +139,31 @@ function ScrollingBackground (Dimension: number, Scrolling: boolean) {
                 value.x += -2
             }
             pause(350)
-            for (let value2 of sprites.allOfKind(SpriteKind.Foreground)) {
+        }
+    })
+    timer.background(function () {
+        while (Scrolling) {
+            for (let value2 of sprites.allOfKind(SpriteKind.Background)) {
                 value2.x += -2
             }
+            pause(700)
+        }
+    })
+    timer.background(function () {
+        while (Scrolling) {
             for (let value3 of sprites.allOfKind(SpriteKind.Background)) {
-                value3.x += -1
+                if (value3.x == -40) {
+                    CreateBackground(LastFloorBackground.right)
+                    sprites.destroy(value3)
+                }
             }
-            pause(350)
+            for (let value22 of sprites.allOfKind(SpriteKind.Foreground)) {
+                if (value22.x == -40) {
+                    CreateForeground(LastFloorForeground.right)
+                    sprites.destroy(value22)
+                }
+            }
+            pause(50)
         }
     })
 }
@@ -358,17 +377,15 @@ function CreatePetrifiedWither (Surrogate: Sprite) {
     })
 }
 function UpdateStatusBars () {
-    let GAME_PLAYER_XP = 0
-    let GAME_PLAYER_XP_NEEDED = 0
     SB_Player_HP.max = sprites.readDataNumber(Character, "MaxHealth")
     SB_Player_HP.value = sprites.readDataNumber(Character, "Health")
     SB_Player_Mana.max = sprites.readDataNumber(Character, "MaxMana")
     SB_Player_Mana.value = sprites.readDataNumber(Character, "Mana")
     SB_Player_XP.max = GAME_PLAYER_XP_NEEDED
     SB_Player_XP.value = GAME_PLAYER_XP
-    for (let value of statusbars.allOfKind(StatusBarKind.Health)) {
-        value.max = sprites.readDataNumber(value.spriteAttachedTo(), "MaxHealth")
-        value.value = sprites.readDataNumber(value.spriteAttachedTo(), "Health")
+    for (let value4 of statusbars.allOfKind(StatusBarKind.Health)) {
+        value4.max = sprites.readDataNumber(value4.spriteAttachedTo(), "MaxHealth")
+        value4.value = sprites.readDataNumber(value4.spriteAttachedTo(), "Health")
     }
 }
 controller.left.onEvent(ControllerButtonEvent.Released, function () {
@@ -378,8 +395,84 @@ controller.left.onEvent(ControllerButtonEvent.Released, function () {
         }
     }
 })
+function ShowSplashScreen () {
+    ScrollingBackground(0, true)
+    GAME_LOGO = sprites.create(img`
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        `, SpriteKind.SplashScreen)
+    GAME_PLAY_BUTTON = sprites.create(img`
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        . . . . . . . . . . . . . . . . 
+        `, SpriteKind.SplashScreen)
+    GAME_PLAY_BUTTON.y += 28
+    GAME_LOGO.setFlag(SpriteFlag.Invisible, true)
+    GAME_PLAY_BUTTON.setFlag(SpriteFlag.Invisible, true)
+    animation.runMovementAnimation(
+    GAME_LOGO,
+    animation.animationPresets(animation.bobbing),
+    2000,
+    true
+    )
+    animation.runMovementAnimation(
+    GAME_PLAY_BUTTON,
+    animation.animationPresets(animation.bobbing),
+    2000,
+    true
+    )
+    animation.runImageAnimation(
+    GAME_LOGO,
+    assets.animation`LogoAnim`,
+    650,
+    true
+    )
+    animation.runImageAnimation(
+    GAME_PLAY_BUTTON,
+    assets.animation`pressAToStartAnim`,
+    650,
+    true
+    )
+    timer.after(1, function () {
+        GAME_LOGO.setFlag(SpriteFlag.Invisible, false)
+        GAME_PLAY_BUTTON.setFlag(SpriteFlag.Invisible, false)
+        timer.after(500, function () {
+        	
+        })
+    })
+}
 function GetEntity_Frame_Hurt (ID: number) {
     return ENTITY_HURT_FRAME[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
+}
+function SetLevelText () {
+    TEXT_CHARACTER_LEVEL.setText("Lv" + GAME_PLAYER_LEVEL)
 }
 function InventorySlotManager () {
     for (let index2 = 0; index2 <= 7; index2++) {
@@ -405,6 +498,7 @@ function StartingConstruction () {
     STATE_ULTIMATE = "Ultimate"
     STATE_IDLERUN = "IdleRun"
     IFrameDuration = 100
+    GAME_PLAYER_XP_NEEDED = 600
     ENTITY_ANIM_IDLERUN = [[
     assets.animation`mobAnimation`,
     assets.animation`mobAnimation2`,
@@ -696,6 +790,17 @@ controller.menu.onEvent(ControllerButtonEvent.Pressed, function () {
 function HasState (State: string) {
     return CharacterStates.indexOf(State) >= 0
 }
+function XPLevelUpManager () {
+    GAME_PLAYER_XP_NEEDED = Math.round(600 * 1.1 ** (GAME_PLAYER_LEVEL - 1))
+    if (GAME_PLAYER_XP > GAME_PLAYER_XP_NEEDED) {
+        GAME_PLAYER_XP += GAME_PLAYER_XP_NEEDED * -1
+        GAME_PLAYER_LEVEL += 1
+        LevelUps += 1
+        SetLevelText()
+        music.play(music.melodyPlayable(music.powerUp), music.PlaybackMode.InBackground)
+        effects.confetti.startScreenEffect(1000)
+    }
+}
 scene.onHitWall(SpriteKind.Player, function (sprite, location) {
     if (Character.isHittingTile(CollisionDirection.Bottom) && HasState(STATE_JUMP)) {
         RemoveState(STATE_JUMP)
@@ -719,6 +824,9 @@ function AddState (State: string, SelfMutex: boolean, MutexStates: string[], Add
         CharacterStates.push(State)
     }
 }
+sprites.onOverlap(SpriteKind.Enemy, SpriteKind.Enemy, function (sprite, otherSprite) {
+    otherSprite.x += 1
+})
 function PlayCheckedTimedStateAnimation (AnimationDuration: number, RemoveState2: boolean) {
     if (CharacterStates[0] == STATE_ATTACK) {
         animation.runImageAnimation(
@@ -782,6 +890,15 @@ function PlayCheckedTimedStateAnimation (AnimationDuration: number, RemoveState2
         })
     }
 }
+function TryManageKilledEntity (DeceasedEntity: Sprite) {
+    if (sprites.readDataNumber(DeceasedEntity, "Health") <= 0 && !(DeceasedEntity == Character)) {
+        sprites.setDataBoolean(DeceasedEntity, "IsAlive", false)
+        info.changeScoreBy(10 * sprites.readDataNumber(DeceasedEntity, "MaxHealth"))
+        GAME_PLAYER_XP += 10 * sprites.readDataNumber(DeceasedEntity, "MaxHealth")
+        sprites.destroy(DeceasedEntity, effects.disintegrate, 100)
+        XPLevelUpManager()
+    }
+}
 function GetEntity_Anim_IdleRun (ID: number) {
     return ENTITY_ANIM_IDLERUN[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
 }
@@ -831,9 +948,7 @@ function DoContactDamage (Victim: Sprite, Instigator: Sprite) {
             )
         })
     }
-    if (sprites.readDataNumber(Victim, "Health") <= 0) {
-        sprites.destroy(Victim, effects.spray, 100)
-    }
+    TryManageKilledEntity(Victim)
 }
 sprites.onOverlap(SpriteKind.Projectile, SpriteKind.Player, function (sprite, otherSprite) {
     if (sprites.readDataString(sprite, "ProjectileType") == "PROJECTILE_FIREBALL") {
@@ -873,9 +988,7 @@ function DoExplosionDamage (Victim: Sprite, Instigator: Sprite) {
             )
         })
     }
-    if (sprites.readDataNumber(Victim, "Health") <= 0) {
-        sprites.destroy(Victim, effects.spray, 100)
-    }
+    TryManageKilledEntity(Victim)
 }
 function AimingBow (_true: boolean) {
     if (_true) {
@@ -1008,6 +1121,9 @@ function ChargeAndReleaseUltimate () {
         })
     }
 }
+function LevelCompleted () {
+	
+}
 function GetEntity_Health_Index (ID: number) {
     return ENTITY_HEALTH_INDEX[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
 }
@@ -1049,14 +1165,14 @@ function GetClosestLivingEntity () {
         . . . . . . . . . . . . . . . . 
         `, SpriteKind.Effect)
     ClosestEnemyDistance = 200
-    for (let value4 of sprites.allOfKind(SpriteKind.Enemy)) {
-        if (GetDistance(Character.x, value4.x, Character.y, value4.y) < ClosestEnemyDistance) {
-            if (sprites.readDataBoolean(value4, "IsAlive")) {
-                ClosestEnemyDistance = GetDistance(Character.x, value4.x, Character.y, value4.y)
-                ClosestEnemy = value4
+    for (let value42 of sprites.allOfKind(SpriteKind.Enemy)) {
+        if (GetDistance(Character.x, value42.x, Character.y, value42.y) < ClosestEnemyDistance) {
+            if (sprites.readDataBoolean(value42, "IsAlive")) {
+                ClosestEnemyDistance = GetDistance(Character.x, value42.x, Character.y, value42.y)
+                ClosestEnemy = value42
             }
         }
-        if (sprites.allOfKind(SpriteKind.Enemy).indexOf(value4) == sprites.allOfKind(SpriteKind.Enemy).length - 1) {
+        if (sprites.allOfKind(SpriteKind.Enemy).indexOf(value42) == sprites.allOfKind(SpriteKind.Enemy).length - 1) {
             console.log("Found last enemy.")
             return true
         }
@@ -1101,7 +1217,7 @@ function CreateBackground (num: number) {
     LastCeilingBackground = sprites.create(Backdrops[1][0]._pickRandom(), SpriteKind.Background)
     LastCeilingBackground.setFlag(SpriteFlag.Ghost, true)
     LastCeilingBackground.setFlag(SpriteFlag.AutoDestroy, true)
-    LastCeilingBackground.bottom = scene.screenHeight() - 92
+    LastCeilingBackground.bottom = scene.screenHeight() - 88
     LastCeilingBackground.left = num
     LastCeilingBackground.z = -101
     LastFloorBackground = sprites.create(Backdrops[1][1]._pickRandom(), SpriteKind.Background)
@@ -1119,11 +1235,8 @@ controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
 function GetDistance (x1: number, x2: number, y1: number, y2: number) {
     return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
 }
-function SplashScreen () {
-	
-}
 function DoAction (Action: string) {
-    if (!(HasState(STATE_ULTIMATE))) {
+    if (!(HasState(STATE_ULTIMATE)) && GAME_RUNNING) {
         if (!(HasState(STATE_CASTING))) {
             if (Action == STATE_CASTING) {
                 if (!(HasState(STATE_AIMING)) && sprites.readDataNumber(Character, "Mana") > 30) {
@@ -1207,7 +1320,7 @@ function CreateForeground (num: number) {
     LastCeilingForeground = sprites.create(Backdrops[0][0]._pickRandom(), SpriteKind.Foreground)
     LastCeilingForeground.setFlag(SpriteFlag.Ghost, true)
     LastCeilingForeground.setFlag(SpriteFlag.AutoDestroy, false)
-    LastCeilingForeground.bottom = scene.screenHeight() - 88
+    LastCeilingForeground.bottom = scene.screenHeight() - 84
     LastCeilingForeground.left = num
     LastCeilingForeground.z = -100
     LastFloorForeground = sprites.create(Backdrops[0][1]._pickRandom(), SpriteKind.Foreground)
@@ -1251,6 +1364,7 @@ function SetupStatusBars () {
     SB_Player_XP.setBarBorder(1, 10)
     SB_Player_XP.setPosition(scene.cameraProperty(CameraProperty.Left) + 67, scene.cameraProperty(CameraProperty.Top) + 12)
     SB_Player_XP.max = 1000
+    SB_Player_XP.value = 0
     timer.background(function () {
         while (true) {
             UpdateStatusBars()
@@ -1272,6 +1386,14 @@ function CastAttack () {
         }
         pause(50)
     }
+}
+function StartGame () {
+    sprites.destroyAllSpritesOfKind(SpriteKind.SplashScreen)
+    StartingConstruction()
+    CreatePlayerComponent()
+    InventorySlotManager()
+    INPUT_MODE = INPUT_GAME
+    GAME_RUNNING = true
 }
 function PLAYER_PASSIVE_REGENERATION () {
     if (INPUT_MODE == INPUT_GAME) {
@@ -1319,14 +1441,12 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
 })
 let TEXT_MANA: TextSprite = null
 let TEXT_HP: TextSprite = null
-let TEXT_CHARACTER_LEVEL: TextSprite = null
 let ICON_CHARACTER: Sprite = null
 let LastCeilingForeground: Sprite = null
 let STATE_AIMING_DURATION = 0
 let LastCeilingBackground: Sprite = null
 let Character_Bow: Sprite = null
 let Character_Shield: Sprite = null
-let GAME_PLAYER_LEVEL = 0
 let ClosestEnemyDistance = 0
 let ClosestEnemy: Sprite = null
 let ULTIMATE_CHARGE = 0
@@ -1340,6 +1460,7 @@ let RANGED_WEAPON_CONTROL = 0
 let BOW_CHARGE = 0
 let angle = 0
 let j = 0
+let LevelUps = 0
 let CharacterStates: string[] = []
 let myMenu: Sprite = null
 let ProjectileDY = 0
@@ -1353,12 +1474,17 @@ let STATE_IDLERUN = ""
 let STATE_CASTING = ""
 let STATE_AIMING = ""
 let STATE_JUMP = ""
-let INPUT_LOCKED = ""
 let Slot: Sprite = null
+let GAME_PLAYER_LEVEL = 0
+let TEXT_CHARACTER_LEVEL: TextSprite = null
 let ENTITY_HURT_FRAME: Image[][] = []
+let GAME_PLAY_BUTTON: Sprite = null
+let GAME_LOGO: Sprite = null
 let STATE_BLOCKING = ""
 let STATE_ULTIMATE = ""
 let INPUT_GAME = ""
+let GAME_PLAYER_XP = 0
+let GAME_PLAYER_XP_NEEDED = 0
 let SB_Player_XP: StatusBarSprite = null
 let SB_Player_Mana: StatusBarSprite = null
 let Character: Sprite = null
@@ -1367,7 +1493,6 @@ let PetrifiedWither_Star: Sprite = null
 let PetrifiedWither_Arms: Sprite = null
 let SB_ENTITY: StatusBarSprite = null
 let Entity: Sprite = null
-let INPUT_MODE = ""
 let LastFloorBackground: Sprite = null
 let LastFloorForeground: Sprite = null
 let Backdrops: Image[][][] = []
@@ -1378,24 +1503,20 @@ let ExplosionEffect: Sprite = null
 let EffectSystem: Sprite = null
 let IFrameDuration = 0
 let STATE_ATTACK = ""
+let INPUT_LOCKED = ""
+let INPUT_MODE = ""
+let GAME_RUNNING = false
+GAME_RUNNING = false
+INPUT_MODE = INPUT_LOCKED
 spriteutils.setConsoleOverlay(false)
 tiles.setCurrentTilemap(tilemap`level1`)
 scene.centerCameraAt(scene.cameraProperty(CameraProperty.X), scene.cameraProperty(CameraProperty.Y) + 6)
-StartingConstruction()
-CreatePlayerComponent()
-AddEntity(11, tiles.getTileLocation(10, 6))
-timer.after(500, function () {
-    AddEntity(11, tiles.getTileLocation(10, 6))
-    timer.after(500, function () {
+ShowSplashScreen()
+pauseUntil(() => controller.A.isPressed())
+StartGame()
+timer.background(function () {
+    while (true) {
         AddEntity(11, tiles.getTileLocation(10, 6))
-        timer.after(500, function () {
-            AddEntity(11, tiles.getTileLocation(10, 6))
-        })
-    })
-})
-ScrollingBackground(0, true)
-InventorySlotManager()
-game.onUpdate(function () {
-    // Debug display of the current state list
-    Character.sayText(CharacterStates, 100, false)
+        pause(650)
+    }
 })
