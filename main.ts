@@ -14,11 +14,11 @@ namespace StatusBarKind {
 sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSprite) {
     if (HasState(STATE_ATTACK)) {
         while (HasState(STATE_ATTACK)) {
-            DoContactDamage(otherSprite, sprite)
+            DoDamage(otherSprite, sprite)
             pause(IFrameDuration)
         }
     } else {
-        DoContactDamage(sprite, otherSprite)
+        DoDamage(sprite, otherSprite)
         pause(IFrameDuration * 2)
     }
 })
@@ -119,7 +119,7 @@ function ScrollingBackground (Dimension: number, Scrolling: boolean) {
         assets.image`cave_floor_background_6`,
         assets.image`cave_floor_background_7`
         ]]]
-        tiles.setCurrentTilemap(tilemap`level1`)
+        tiles.setCurrentTilemap(tilemap`overworld_tilemap`)
         CreateForeground(0)
         CreateBackground(0)
         for (let index = 0; index < 2; index++) {
@@ -152,13 +152,13 @@ function ScrollingBackground (Dimension: number, Scrolling: boolean) {
     timer.background(function () {
         while (Scrolling) {
             for (let value3 of sprites.allOfKind(SpriteKind.Background)) {
-                if (value3.x == -40) {
+                if (value3.x <= -40) {
                     CreateBackground(LastFloorBackground.right)
                     sprites.destroy(value3)
                 }
             }
             for (let value22 of sprites.allOfKind(SpriteKind.Foreground)) {
-                if (value22.x == -40) {
+                if (value22.x <= -40) {
                     CreateForeground(LastFloorForeground.right)
                     sprites.destroy(value22)
                 }
@@ -170,6 +170,11 @@ function ScrollingBackground (Dimension: number, Scrolling: boolean) {
 function SetInputMode (Mode: string) {
     INPUT_MODE = Mode
 }
+controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
+        DoAction(STATE_CASTING)
+    }
+})
 function AddEntity (ID: number, Location: tiles.Location) {
     Entity = sprites.createProjectileFromSide(img`
         . . . . . . . . . . . . . . . . 
@@ -212,6 +217,41 @@ function AddEntity (ID: number, Location: tiles.Location) {
     } else {
         CreatePetrifiedWither(Entity)
     }
+}
+function MENU_SAVE_LOAD_START () {
+    bMenuOpen = true
+    MENU_SAVELOAD = miniMenu.createMenuFromArray([
+    miniMenu.createMenuItem("LEGEND " + "(Lv." + blockSettings.readNumberArray("save_1")[0] + ")", assets.image`icon_tear`),
+    miniMenu.createMenuItem("SPACEMAN " + "(Lv." + blockSettings.readNumberArray("save_2")[0] + ")", assets.image`icon_space`),
+    miniMenu.createMenuItem("KING " + "(Lv." + blockSettings.readNumberArray("save_3")[0] + ")", assets.image`icon_techno`),
+    miniMenu.createMenuItem("HERO " + "(Lv." + blockSettings.readNumberArray("save_4")[0] + ")", assets.image`icon_hero`),
+    miniMenu.createMenuItem("< CLOSE")
+    ])
+    miniMenu.onSelectionChanged(MENU_SAVELOAD, function (selection, selectedIndex) {
+        music.play(music.createSoundEffect(WaveShape.Noise, 3900, 3500, 255, 0, 10, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
+    })
+    MENU_SAVELOAD.z = 2000
+    miniMenu.setDimensions(MENU_SAVELOAD, 128, 88)
+    MENU_SAVELOAD.setPosition(scene.cameraProperty(CameraProperty.X), scene.cameraProperty(CameraProperty.Y))
+    miniMenu.setFrame(MENU_SAVELOAD, assets.image`lootReward9`)
+    miniMenu.setMenuStyleProperty(MENU_SAVELOAD, miniMenu.MenuStyleProperty.Padding, 0)
+    miniMenu.setStyleProperty(MENU_SAVELOAD, miniMenu.StyleKind.Selected, miniMenu.StyleProperty.Foreground, 6)
+    miniMenu.setStyleProperty(MENU_SAVELOAD, miniMenu.StyleKind.DefaultAndSelected, miniMenu.StyleProperty.Background, 8)
+    miniMenu.setStyleProperty(MENU_SAVELOAD, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Background, 6)
+    miniMenu.setStyleProperty(MENU_SAVELOAD, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Foreground, 5)
+    miniMenu.setStyleProperty(MENU_SAVELOAD, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Alignment, 1)
+    miniMenu.setTitle(MENU_SAVELOAD, "SAVE OR LOAD GAME?")
+    miniMenu.onButtonPressed(MENU_SAVELOAD, miniMenu.Button.A, function (selection, selectedIndex) {
+        music.play(music.createSoundEffect(WaveShape.Square, 200, 600, 255, 0, 50, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
+        if (!(selectedIndex == 4)) {
+            MENU_SAVE_LOAD_NEXT(selection, selectedIndex)
+            miniMenu.close(MENU_SAVELOAD)
+        } else {
+            miniMenu.close(MENU_SAVELOAD)
+            pause(100)
+            bMenuOpen = false
+        }
+    })
 }
 function GetDirectionalSprite (Angle: number, Projectile: string) {
     if (Projectile == "arrow") {
@@ -283,6 +323,51 @@ function GetDirectionalSprite (Angle: number, Projectile: string) {
             . . . . . . . . . . . . . . . . 
             `
     }
+}
+controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
+        DoAction(STATE_ULTIMATE)
+    } else if (!(GAME_RUNNING) && !(GAME_INTRO_RUNNING)) {
+        MENU_SAVE_LOAD_START()
+    }
+})
+function DoDamage (Victim: Sprite, Instigator: Sprite) {
+    if (Victim != Instigator) {
+        if (Instigator.kind() == SpriteKind.Explosion) {
+            sprites.setDataNumber(Victim, "Health", sprites.readDataNumber(Victim, "Health") - sprites.readDataNumber(Instigator, "BlastDamage"))
+        } else if (Instigator.kind() == SpriteKind.Projectile) {
+            sprites.setDataNumber(Victim, "Health", sprites.readDataNumber(Victim, "Health") - sprites.readDataNumber(Instigator, "ProjectileDamage"))
+        } else {
+            sprites.setDataNumber(Victim, "Health", sprites.readDataNumber(Victim, "Health") - sprites.readDataNumber(Instigator, "AttackDamage"))
+        }
+    }
+    music.play(music.createSoundEffect(WaveShape.Square, 200, 1, 255, 0, 100, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
+    if (Victim != Character) {
+        animation.stopAnimation(animation.AnimationTypes.ImageAnimation, Victim)
+        Victim.setImage(GetEntity_Frame_Hurt(sprites.readDataNumber(Victim, "ID")))
+        Victim.vx += 200
+        timer.after(IFrameDuration, function () {
+            Victim.vx = GetEntity_Speed_Index(sprites.readDataNumber(Victim, "ID"))
+            animation.runImageAnimation(
+            Victim,
+            GetEntity_Anim_IdleRun(sprites.readDataNumber(Victim, "ID")),
+            100,
+            true
+            )
+        })
+    } else {
+        scene.cameraShake(5, 200)
+        Victim.setImage(assets.image`playerAnimations30`)
+        timer.after(IFrameDuration, function () {
+            animation.runImageAnimation(
+            Victim,
+            assets.animation`player_idlerun`,
+            100,
+            true
+            )
+        })
+    }
+    TryManageKilledEntity(Victim)
 }
 function CreatePetrifiedWither (Surrogate: Sprite) {
     animation.runImageAnimation(
@@ -376,6 +461,39 @@ function CreatePetrifiedWither (Surrogate: Sprite) {
         }
     })
 }
+function DATA_CHECK () {
+    if (!(blockSettings.exists("save_1"))) {
+        blockSettings.writeNumberArray("save_1", [0, 0])
+        blockSettings.writeNumberArray("save_2", [0, 0])
+        blockSettings.writeNumberArray("save_3", [0, 0])
+        blockSettings.writeNumberArray("save_4", [0, 0])
+    }
+}
+function DATA_SAVE (SaveFile: number) {
+    blockSettings.writeNumberArray("save_" + SaveFile, [
+    GAME_PLAYER_LEVEL,
+    GAME_PLAYER_XP,
+    0
+    ])
+}
+function Play_Level (level: number) {
+    LEVEL_BANNER = sprites.createProjectileFromSide(assets.image`level_banner_1`, -50, 0)
+    tiles.placeOnTile(LEVEL_BANNER, tiles.getTileLocation(12, 4))
+    LEVEL_BANNER.z = 20000
+    LEVEL_BANNER.lifespan = 12000
+    LEVEL_BANNER.setFlag(SpriteFlag.StayInScreen, false)
+    LEVEL_BANNER.setFlag(SpriteFlag.GhostThroughWalls, true)
+    LEVEL_BANNER.setFlag(SpriteFlag.AutoDestroy, false)
+    timer.background(function () {
+        for (let index = 0; index < 10; index++) {
+            music.play(music.createSoundEffect(WaveShape.Square, 1724, 1, 255, 0, 300, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
+            pause(300)
+        }
+    })
+    timer.after(1000, function () {
+        AddEntity(11, tiles.getTileLocation(10, 6))
+    })
+}
 function UpdateStatusBars () {
     SB_Player_HP.max = sprites.readDataNumber(Character, "MaxHealth")
     SB_Player_HP.value = sprites.readDataNumber(Character, "Health")
@@ -388,13 +506,6 @@ function UpdateStatusBars () {
         value4.value = sprites.readDataNumber(value4.spriteAttachedTo(), "Health")
     }
 }
-controller.left.onEvent(ControllerButtonEvent.Released, function () {
-    if (INPUT_MODE == INPUT_GAME) {
-        if (!(HasState(STATE_ULTIMATE))) {
-            RemoveState(STATE_BLOCKING)
-        }
-    }
-})
 function ShowSplashScreen () {
     ScrollingBackground(0, true)
     GAME_SPLASH_TEXT = textsprite.create([
@@ -489,13 +600,86 @@ function ShowSplashScreen () {
         GAME_PLAY_BUTTON.setFlag(SpriteFlag.Invisible, false)
     })
     timer.background(function () {
-        while (false) {
-        	
+        while (!(GAME_RUNNING) && !(GAME_INTRO_RUNNING)) {
+            Entity = sprites.createProjectileFromSide(img`
+                6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 
+                6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 
+                6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 
+                6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 
+                6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 
+                6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 
+                6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 
+                6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 
+                6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 
+                6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 
+                6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 
+                6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 
+                6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 
+                6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 
+                6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 
+                6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 
+                `, 0, 0)
+            tiles.placeOnTile(Entity, tiles.getTileLocation(10, 6))
+            animation.runImageAnimation(
+            Entity,
+            ENTITY_ANIM_IDLERUN[randint(0, 2)]._pickRandom(),
+            100,
+            true
+            )
+            Entity.setKind(SpriteKind.SplashScreen)
+            Entity.setVelocity(-50, 0)
+            Entity.top = 100
+            pause(randint(600, 800))
         }
     })
 }
 function GetEntity_Frame_Hurt (ID: number) {
     return ENTITY_HURT_FRAME[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
+}
+function MENU_SAVE_LOAD_NEXT (Save: string, Index: number) {
+    MENU_SELECT_OPTION = miniMenu.createMenuFromArray([
+    miniMenu.createMenuItem(Save, miniMenu.getMenuItem(MENU_SAVELOAD, Index).getIcon(), true),
+    miniMenu.createMenuItem("LOAD SAVE?"),
+    miniMenu.createMenuItem("OVERWRITE?"),
+    miniMenu.createMenuItem("< BACK")
+    ])
+    miniMenu.onSelectionChanged(MENU_SELECT_OPTION, function (selection, selectedIndex) {
+        music.play(music.createSoundEffect(WaveShape.Noise, 3900, 3500, 255, 255, 10, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
+    })
+    miniMenu.setTitle(MENU_SELECT_OPTION, "SAVE FILE READY!")
+    miniMenu.setStyleProperty(MENU_SELECT_OPTION, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Background, 9)
+    miniMenu.setStyleProperty(MENU_SELECT_OPTION, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Foreground, 15)
+    miniMenu.setStyleProperty(MENU_SELECT_OPTION, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Alignment, 1)
+    miniMenu.setStyleProperty(MENU_SELECT_OPTION, miniMenu.StyleKind.Disabled, miniMenu.StyleProperty.Background, 10)
+    miniMenu.setStyleProperty(MENU_SELECT_OPTION, miniMenu.StyleKind.Disabled, miniMenu.StyleProperty.Foreground, 9)
+    miniMenu.setStyleProperty(MENU_SELECT_OPTION, miniMenu.StyleKind.Selected, miniMenu.StyleProperty.Foreground, 6)
+    miniMenu.setStyleProperty(MENU_SELECT_OPTION, miniMenu.StyleKind.Selected, miniMenu.StyleProperty.Background, 1)
+    miniMenu.setStyleProperty(MENU_SELECT_OPTION, miniMenu.StyleKind.DefaultAndSelected, miniMenu.StyleProperty.Background, 1)
+    miniMenu.setFrame(MENU_SELECT_OPTION, assets.image`lootReward18`)
+    MENU_SELECT_OPTION.z = 3000
+    miniMenu.setDimensions(MENU_SELECT_OPTION, 124, 76)
+    MENU_SELECT_OPTION.setPosition(scene.cameraProperty(CameraProperty.X), scene.cameraProperty(CameraProperty.Y))
+    miniMenu.onButtonPressed(MENU_SELECT_OPTION, miniMenu.Button.A, function (selection, selectedIndex) {
+        music.play(music.createSoundEffect(WaveShape.Square, 200, 600, 255, 255, 50, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
+        miniMenu.close(MENU_SELECT_OPTION)
+        if (selectedIndex == 1) {
+            music.play(music.createSong(hex`00dc000408010105001c000f0a006400f4010a0000040000000000000000000000000000000002180000000200010d02000400010f04000600010c060008000118`), music.PlaybackMode.InBackground)
+            MENU_SHOW_SUCCESS = miniMenu.createMenu(
+            miniMenu.createMenuItem("OK >")
+            )
+            MENU_SHOW_SUCCESS.z = 3200
+            miniMenu.setDimensions(MENU_SHOW_SUCCESS, 96, 34)
+            MENU_SHOW_SUCCESS.setPosition(scene.cameraProperty(CameraProperty.X), scene.cameraProperty(CameraProperty.Y))
+            miniMenu.setTitle(MENU_SHOW_SUCCESS, "SAVE LOADED.")
+            miniMenu.setFrame(MENU_SHOW_SUCCESS, assets.image`lootReward27`)
+            miniMenu.onButtonPressed(MENU_SHOW_SUCCESS, miniMenu.Button.A, function (selection, selectedIndex) {
+                miniMenu.close(MENU_SHOW_SUCCESS)
+            })
+        }
+        if (selectedIndex == 3) {
+            MENU_SAVE_LOAD_START()
+        }
+    })
 }
 function SetLevelText () {
     TEXT_CHARACTER_LEVEL.setText("Lv" + GAME_PLAYER_LEVEL)
@@ -523,23 +707,59 @@ function StartingConstruction () {
     STATE_CASTING = "Casting"
     STATE_ULTIMATE = "Ultimate"
     STATE_IDLERUN = "IdleRun"
-    IFrameDuration = 100
+    IFrameDuration = 50
     GAME_PLAYER_XP_NEEDED = 600
     ENTITY_ANIM_IDLERUN = [[
-    assets.animation`mobAnimation`,
-    assets.animation`mobAnimation2`,
-    assets.animation`mobAnimation3`,
-    assets.animation`mobAnimation4`
+    assets.animation`zombie_idle`,
+    assets.animation`zombie_gold_idle`,
+    assets.animation`zombie_iron_idle`,
+    assets.animation`zombie_diamond_idle`,
+    assets.animation`mobAnimation15`,
+    assets.animation`skeleton_idle`,
+    assets.animation`skeleton_gold_idle`,
+    assets.animation`skeleton_iron_idle`,
+    assets.animation`skeleton_diamond_idle`,
+    assets.animation`mobAnimation23`,
+    assets.animation`hexxus_idle`,
+    assets.animation`spider_idle`,
+    assets.animation`spider_jockey_idle`,
+    assets.animation`spider_giant_idle`,
+    assets.animation`creeper_idle`,
+    assets.animation`creeper_charged_idle`,
+    assets.animation`mobAnimation17`,
+    assets.animation`creeper_flying_machine_idle`,
+    assets.animation`creeper_giant_idle`
     ], [
-    assets.animation`myAnim`,
+    assets.animation`mobAnimation24`,
+    assets.animation`mobAnimation25`,
+    assets.animation`mobAnimation26`,
+    assets.animation`mobAnimation27`,
+    assets.animation`mobAnimation28`,
+    assets.animation`mobAnimation29`,
+    assets.animation`mobAnimation30`,
+    assets.animation`mobAnimation31`,
+    assets.animation`mobAnimation32`,
+    assets.animation`mobAnimation33`,
+    assets.animation`mobAnimation34`,
+    assets.animation`mobAnimation40`,
+    assets.animation`mobAnimation41`,
+    assets.animation`mobAnimation36`,
+    assets.animation`mobAnimation35`,
+    assets.animation`mobAnimation37`,
+    assets.animation`mobAnimation38`,
+    assets.animation`mobAnimation39`,
+    assets.animation`mobAnimation42`,
+    assets.animation`mobAnimation43`,
+    assets.animation`mobAnimation44`,
     assets.animation`petrified_wither_dragging_head`,
+    assets.animation`petrified_wither_roar_head`,
     assets.animation`petrified_wither_walking_arms`,
-    assets.animation`petrified_wither_roar_head`
+    assets.animation`myAnim`
     ], [
-    assets.animation`mobAnimation`,
-    assets.animation`mobAnimation2`,
-    assets.animation`mobAnimation3`,
-    assets.animation`mobAnimation4`
+    assets.animation`mobHurtAnim`,
+    assets.animation`mobHurtAnim2`,
+    assets.animation`constructArrays2`,
+    assets.animation`constructArrays2`
     ]]
     ENTITY_HURT_FRAME = [[
     assets.image`mobHurt`,
@@ -782,6 +1002,7 @@ function AddVectorFireball (Instigator: Sprite, x: number, y: number, AccuracySp
     Fireball = sprites.createProjectileFromSprite(assets.image`Fireball`, Instigator, 0, 0)
     sprites.setDataSprite(Fireball, "Instigator", Instigator)
     sprites.setDataString(Fireball, "ProjectileType", "PROJECTILE_FIREBALL")
+    sprites.setDataNumber(Fireball, "BlastDamage", 12)
     Fireball.setFlag(SpriteFlag.StayInScreen, false)
     ProjectileDX = x - Instigator.x + randint(-1 * AccuracySpread, AccuracySpread)
     ProjectileDY = y - Instigator.y + randint(-1 * AccuracySpread, AccuracySpread)
@@ -791,39 +1012,23 @@ function AddVectorFireball (Instigator: Sprite, x: number, y: number, AccuracySp
     Fireball.lifespan = 2000
     Fireball.z = 20
     Fireball.scale = 0.5
-    Fireball.startEffect(effects.fire, 1000)
+    Fireball.startEffect(effects.fire, 2000)
     music.play(music.createSoundEffect(WaveShape.Noise, 1, 1631, 255, 0, 150, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
 }
-controller.menu.onEvent(ControllerButtonEvent.Pressed, function () {
-    SetInputMode(INPUT_LOCKED)
-    myMenu = miniMenu.createMenuFromArray([miniMenu.createMenuItem("[BUY] $1M", assets.image`lootReward30`), miniMenu.createMenuItem("Golden Chestplate", assets.image`armorSlot2`)])
-    miniMenu.setStyleProperty(myMenu, miniMenu.StyleKind.All, miniMenu.StyleProperty.Padding, 0)
-    miniMenu.setFrame(myMenu, assets.image`lootReward27`)
-    while (true) {
-        miniMenu.getMenuItem(myMenu, 0).setIcon(assets.image`armorSlot1`)
-        timer.after(100, function () {
-            miniMenu.getMenuItem(myMenu, 0).setIcon(assets.image`armorSlot2`)
-            timer.after(100, function () {
-                miniMenu.getMenuItem(myMenu, 0).setIcon(assets.image`armorSlot3`)
-                timer.after(100, function () {
-                    miniMenu.getMenuItem(myMenu, 0).setIcon(assets.image`armorSlot4`)
-                })
-            })
-        })
-        pause(500)
-    }
-})
 function HasState (State: string) {
     return CharacterStates.indexOf(State) >= 0
 }
+sprites.onOverlap(SpriteKind.Player, SpriteKind.Explosion, function (sprite, otherSprite) {
+    DoDamage(sprite, otherSprite)
+})
 function XPLevelUpManager () {
-    GAME_PLAYER_XP_NEEDED = Math.round(600 * 1.1 ** (GAME_PLAYER_LEVEL - 1))
+    GAME_PLAYER_XP_NEEDED = Math.round(1200 * 1.1 ** (GAME_PLAYER_LEVEL - 1))
     if (GAME_PLAYER_XP > GAME_PLAYER_XP_NEEDED) {
         GAME_PLAYER_XP += GAME_PLAYER_XP_NEEDED * -1
         GAME_PLAYER_LEVEL += 1
         LevelUps += 1
         SetLevelText()
-        music.play(music.melodyPlayable(music.powerUp), music.PlaybackMode.InBackground)
+        music.play(music.createSong(assets.song`SFX_LevelUP`), music.PlaybackMode.InBackground)
         effects.confetti.startScreenEffect(1000)
     }
 }
@@ -850,6 +1055,11 @@ function AddState (State: string, SelfMutex: boolean, MutexStates: string[], Add
         CharacterStates.push(State)
     }
 }
+controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
+        DoAction(STATE_BLOCKING)
+    }
+})
 sprites.onOverlap(SpriteKind.Enemy, SpriteKind.Enemy, function (sprite, otherSprite) {
     otherSprite.x += 1
 })
@@ -897,7 +1107,7 @@ function PlayCheckedTimedStateAnimation (AnimationDuration: number, RemoveState2
     if (CharacterStates[0] == STATE_CASTING) {
         animation.runImageAnimation(
         Character,
-        assets.animation`player_casting0`,
+        assets.animation`player_casting`,
         100,
         true
         )
@@ -917,7 +1127,7 @@ function PlayCheckedTimedStateAnimation (AnimationDuration: number, RemoveState2
     }
 }
 function TryManageKilledEntity (DeceasedEntity: Sprite) {
-    if (sprites.readDataNumber(DeceasedEntity, "Health") <= 0 && !(DeceasedEntity == Character)) {
+    if (sprites.readDataNumber(DeceasedEntity, "Health") <= 0 && !(DeceasedEntity == Character) && sprites.readDataBoolean(DeceasedEntity, "IsAlive")) {
         sprites.setDataBoolean(DeceasedEntity, "IsAlive", false)
         info.changeScoreBy(10 * sprites.readDataNumber(DeceasedEntity, "MaxHealth"))
         GAME_PLAYER_XP += 10 * sprites.readDataNumber(DeceasedEntity, "MaxHealth")
@@ -938,48 +1148,20 @@ function RemoveState (State: string) {
     }
     PlayCheckedTimedStateAnimation(0, false)
 }
-controller.B.onEvent(ControllerButtonEvent.Released, function () {
-    if (INPUT_MODE == INPUT_GAME) {
-        RemoveState(STATE_ULTIMATE)
+controller.left.onEvent(ControllerButtonEvent.Released, function () {
+    if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
+        if (!(HasState(STATE_ULTIMATE))) {
+            RemoveState(STATE_BLOCKING)
+        }
     }
 })
 function GetEntity_Attack_Damage (ID: number) {
     return ENTITY_ATTACK_DAMAGE[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
 }
-function DoContactDamage (Victim: Sprite, Instigator: Sprite) {
-    sprites.setDataNumber(Victim, "Health", sprites.readDataNumber(Victim, "Health") - sprites.readDataNumber(Instigator, "AttackDamage"))
-    music.play(music.createSoundEffect(WaveShape.Square, 200, 1, 255, 0, 100, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
-    if (Victim != Character) {
-        animation.stopAnimation(animation.AnimationTypes.ImageAnimation, Victim)
-        Victim.setImage(GetEntity_Frame_Hurt(sprites.readDataNumber(Victim, "ID")))
-        Victim.vx += 200
-        timer.after(IFrameDuration, function () {
-            Victim.vx = GetEntity_Speed_Index(sprites.readDataNumber(Victim, "ID"))
-            animation.runImageAnimation(
-            Victim,
-            GetEntity_Anim_IdleRun(sprites.readDataNumber(Victim, "ID")),
-            100,
-            true
-            )
-        })
-    } else {
-        scene.cameraShake(5, 200)
-        Victim.setImage(assets.image`playerAnimations30`)
-        timer.after(IFrameDuration, function () {
-            animation.runImageAnimation(
-            Victim,
-            assets.animation`player_idlerun`,
-            100,
-            true
-            )
-        })
-    }
-    TryManageKilledEntity(Victim)
-}
 sprites.onOverlap(SpriteKind.Projectile, SpriteKind.Player, function (sprite, otherSprite) {
     if (sprites.readDataString(sprite, "ProjectileType") == "PROJECTILE_FIREBALL") {
         if (!(sprites.readDataSprite(sprite, "Instigator") == otherSprite)) {
-            AddExplosion(EXPLOSION_FIREBALL, 2, 3, sprite.x, sprite.y, sprites.readDataSprite(sprite, "Instigator"))
+            AddExplosion(EXPLOSION_FIREBALL, 2, 3, sprite.x, sprite.y, sprite)
             sprites.destroy(sprite)
         }
     }
@@ -987,37 +1169,13 @@ sprites.onOverlap(SpriteKind.Projectile, SpriteKind.Player, function (sprite, ot
 function GetEntity_Speed_Index (ID: number) {
     return ENTITY_SPEED_INDEX[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1] * -1
 }
-function DoExplosionDamage (Victim: Sprite, Instigator: Sprite) {
-    if (Victim != Instigator) {
-        sprites.setDataNumber(Victim, "Health", sprites.readDataNumber(Victim, "Health") - sprites.readDataNumber(Instigator, "AttackDamage"))
+controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
+        DoAction(STATE_JUMP)
     }
-    music.play(music.createSoundEffect(WaveShape.Square, 200, 1, 255, 0, 100, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
-    if (Victim != Character) {
-        animation.stopAnimation(animation.AnimationTypes.ImageAnimation, Victim)
-        Victim.setImage(GetEntity_Frame_Hurt(sprites.readDataNumber(Victim, "ID")))
-        timer.after(IFrameDuration, function () {
-            animation.runImageAnimation(
-            Victim,
-            GetEntity_Anim_IdleRun(sprites.readDataNumber(Victim, "ID")),
-            100,
-            true
-            )
-        })
-    } else {
-        Victim.setImage(assets.image`playerAnimations30`)
-        timer.after(IFrameDuration, function () {
-            animation.runImageAnimation(
-            Victim,
-            assets.animation`player_idlerun`,
-            100,
-            true
-            )
-        })
-    }
-    TryManageKilledEntity(Victim)
-}
+})
 function AimingBow (_true: boolean) {
-    if (_true) {
+    if (_true && GAME_RUNNING) {
         angle = 0
         BOW_CHARGE = 0
         RANGED_WEAPON_CONTROL = 2
@@ -1057,6 +1215,7 @@ function AimingBow (_true: boolean) {
             music.play(music.createSoundEffect(WaveShape.Noise, 2365, 4651, 255, 0, 200, SoundExpressionEffect.Warble, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
             arrow = sprites.create(GetDirectionalSprite(angle, "arrow"), SpriteKind.Projectile)
             sprites.setDataNumber(arrow, "ProjectileDamage", Math.max(BOW_CHARGE, 500) / 500 * sprites.readDataNumber(Character, "BowDamage"))
+            sprites.setDataString(arrow, "ProjectileType", "PROJECTILE_ARROW")
             arrow.setPosition(Character.x, Character.y)
             PlayerArrowDX = Character.x + RETICLE_RADIUS * Math.cos(angle * Math.PI / 180) - Character.x
             PlayerArrowDY = Character.y - RETICLE_RADIUS * Math.sin(angle * Math.PI / 180) - Character.y
@@ -1071,8 +1230,13 @@ function AimingBow (_true: boolean) {
         BOW_CHARGE = 0
     }
 }
+controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
+        DoAction(STATE_ATTACK)
+    }
+})
 sprites.onOverlap(SpriteKind.Enemy, SpriteKind.Explosion, function (sprite, otherSprite) {
-    DoExplosionDamage(sprite, sprites.readDataSprite(otherSprite, "Instigator"))
+    DoDamage(sprite, otherSprite)
 })
 function ChargeAndReleaseUltimate () {
     ULTIMATE_CHARGE = 0
@@ -1153,11 +1317,6 @@ function LevelCompleted () {
 function GetEntity_Health_Index (ID: number) {
     return ENTITY_HEALTH_INDEX[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
 }
-controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (INPUT_MODE == INPUT_GAME) {
-        DoAction(STATE_BLOCKING)
-    }
-})
 scene.onHitWall(SpriteKind.Projectile, function (sprite, location) {
     if (sprites.readDataString(sprite, "ProjectileType") == "PROJECTILE_FIREBALL") {
         AddExplosion(EXPLOSION_FIREBALL, 2, 3, sprite.x, sprite.y, sprites.readDataSprite(sprite, "Instigator"))
@@ -1166,9 +1325,163 @@ scene.onHitWall(SpriteKind.Projectile, function (sprite, location) {
 })
 function Cutscene (Scene: number) {
     if (Scene == 0) {
-    	
-    } else {
-    	
+        music.play(music.createSoundEffect(WaveShape.Noise, 3900, 3500, 255, 0, 10, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
+        color.FadeToBlack.startScreenEffect(1000)
+        color.pauseUntilFadeDone()
+        GAME_INTRO_RUNNING = true
+        sprites.destroyAllSpritesOfKind(SpriteKind.SplashScreen)
+        sprites.destroyAllSpritesOfKind(SpriteKind.Background)
+        sprites.destroyAllSpritesOfKind(SpriteKind.Foreground)
+        tiles.setCurrentTilemap(tilemap`level2`)
+        music.play(music.createSong(assets.song`song_intro3`), music.PlaybackMode.InBackground)
+        color.clearFadeEffect()
+        textSprite = textsprite.create("DO YOU WISH TO BE A HERO?", 15, 2)
+        textSprite.setPosition(scene.cameraProperty(CameraProperty.X), scene.cameraProperty(CameraProperty.Y))
+        timer.after(500, function () {
+            color.FadeToBlack.startScreenEffect(500)
+            timer.after(500, function () {
+                color.clearFadeEffect()
+                timer.after(500, function () {
+                    color.FadeToBlack.startScreenEffect(500)
+                    timer.after(500, function () {
+                        color.clearFadeEffect()
+                        timer.after(500, function () {
+                            color.FadeToBlack.startScreenEffect(500)
+                            timer.after(500, function () {
+                                color.clearFadeEffect()
+                                timer.after(500, function () {
+                                    color.FadeToBlack.startScreenEffect(500)
+                                    timer.after(500, function () {
+                                        color.clearFadeEffect()
+                                        music.play(music.createSong(assets.song`song_intro0`), music.PlaybackMode.InBackground)
+                                        sprites.destroy(textSprite)
+                                        textSprite = textsprite.create("DO YOU HAVE WHAT IT TAKES?", 15, 3)
+                                        textSprite.setPosition(scene.cameraProperty(CameraProperty.X), scene.cameraProperty(CameraProperty.Y))
+                                        timer.after(500, function () {
+                                            color.FadeToBlack.startScreenEffect(500)
+                                            timer.after(500, function () {
+                                                color.clearFadeEffect()
+                                                timer.after(500, function () {
+                                                    color.FadeToBlack.startScreenEffect(500)
+                                                    timer.after(500, function () {
+                                                        color.clearFadeEffect()
+                                                        timer.after(500, function () {
+                                                            color.FadeToBlack.startScreenEffect(500)
+                                                            timer.after(500, function () {
+                                                                timer.background(function () {
+                                                                    music.play(music.createSong(assets.song`intro_song1`), music.PlaybackMode.UntilDone)
+                                                                    timer.background(function () {
+                                                                        music.play(music.createSong(assets.song`intro_song2`), music.PlaybackMode.UntilDone)
+                                                                    })
+                                                                })
+                                                                color.clearFadeEffect()
+                                                                sprites.destroy(textSprite)
+                                                                textSprite = textsprite.create("GET READY...", 15, 5)
+                                                                textSprite.setMaxFontHeight(9)
+                                                                textSprite.setPosition(scene.cameraProperty(CameraProperty.X), scene.cameraProperty(CameraProperty.Y))
+                                                                timer.after(500, function () {
+                                                                    color.FadeToBlack.startScreenEffect(500)
+                                                                    timer.after(500, function () {
+                                                                        color.clearFadeEffect()
+                                                                        timer.after(500, function () {
+                                                                            color.FadeToBlack.startScreenEffect(500)
+                                                                            timer.after(500, function () {
+                                                                                color.clearFadeEffect()
+                                                                                timer.after(500, function () {
+                                                                                    color.FadeToBlack.startScreenEffect(500)
+                                                                                    timer.after(500, function () {
+                                                                                        sprites.destroy(textSprite)
+                                                                                        ScrollingBackground(0, true)
+                                                                                        tiles.setCurrentTilemap(tilemap`overworld_intro`)
+                                                                                        Character = sprites.create(assets.image`xtear_sprite`, SpriteKind.SplashScreen)
+                                                                                        tiles.placeOnTile(Character, tiles.getTileLocation(0, 6))
+                                                                                        color.clearFadeEffect()
+                                                                                        Character.vx = 20
+                                                                                        timer.after(1000, function () {
+                                                                                            Character.vx = 12
+                                                                                            timer.after(750, function () {
+                                                                                                Character.vx = 8
+                                                                                                timer.after(500, function () {
+                                                                                                    Character.vx = 4
+                                                                                                })
+                                                                                            })
+                                                                                        })
+                                                                                        Character.y += 1
+                                                                                        animation.runImageAnimation(
+                                                                                        Character,
+                                                                                        assets.animation`player_running`,
+                                                                                        100,
+                                                                                        true
+                                                                                        )
+                                                                                        timer.background(function () {
+                                                                                            pauseUntil(() => Character.isHittingTile(CollisionDirection.Right))
+                                                                                            Character.vx = 0
+                                                                                            tiles.setCurrentTilemap(tilemap`overworld_tilemap`)
+                                                                                        })
+                                                                                        scene.cameraShake(8, 200)
+                                                                                        sprites.destroy(textSprite)
+                                                                                        textSprite = textsprite.create("USE KEYS & BUTTONS!", 0, 1)
+                                                                                        textSprite.setMaxFontHeight(8)
+                                                                                        textSprite.setOutline(1, 15)
+                                                                                        textSprite.setPosition(scene.cameraProperty(CameraProperty.X), scene.cameraProperty(CameraProperty.Y) - 25)
+                                                                                        Instructions = sprites.create(assets.image`GameIntro2`, SpriteKind.SplashScreen)
+                                                                                        Instructions.setPosition(scene.cameraProperty(CameraProperty.X), scene.cameraProperty(CameraProperty.Y))
+                                                                                        animation.runMovementAnimation(
+                                                                                        Instructions,
+                                                                                        animation.animationPresets(animation.bobbing),
+                                                                                        2000,
+                                                                                        true
+                                                                                        )
+                                                                                        timer.after(3000, function () {
+                                                                                            Instructions.setImage(assets.image`lootReward6`)
+                                                                                            scene.cameraShake(8, 200)
+                                                                                            timer.after(3000, function () {
+                                                                                                Instructions.setImage(assets.image`GameIntro3`)
+                                                                                                scene.cameraShake(8, 200)
+                                                                                                timer.after(3000, function () {
+                                                                                                    Instructions.setImage(assets.image`lootReward10`)
+                                                                                                    scene.cameraShake(8, 200)
+                                                                                                    timer.after(3000, function () {
+                                                                                                        scene.cameraShake(4, 500)
+                                                                                                        sprites.destroy(Instructions)
+                                                                                                        textSprite.setText("GOOD LUCK")
+                                                                                                        textSprite.lifespan = 7000
+                                                                                                        textSprite.setPosition(scene.cameraProperty(CameraProperty.X), scene.cameraProperty(CameraProperty.Y))
+                                                                                                        timer.after(2000, function () {
+                                                                                                            textSprite.vx = 40
+                                                                                                            textSprite.ax = -40
+                                                                                                            timer.after(5000, function () {
+                                                                                                                GAME_INTRO_RUNNING = false
+                                                                                                                sprites.destroyAllSpritesOfKind(SpriteKind.SplashScreen)
+                                                                                                                sprites.destroyAllSpritesOfKind(SpriteKind.SplashScreen)
+                                                                                                                scene.cameraShake(6, 100)
+                                                                                                            })
+                                                                                                        })
+                                                                                                    })
+                                                                                                })
+                                                                                            })
+                                                                                        })
+                                                                                    })
+                                                                                })
+                                                                            })
+                                                                        })
+                                                                    })
+                                                                })
+                                                            })
+                                                        })
+                                                    })
+                                                })
+                                            })
+                                        })
+                                    })
+                                })
+                            })
+                        })
+                    })
+                })
+            })
+        })
+        pauseUntil(() => !(GAME_INTRO_RUNNING))
     }
 }
 function GetClosestLivingEntity () {
@@ -1253,14 +1566,20 @@ function CreateBackground (num: number) {
     LastFloorBackground.left = num
     LastFloorBackground.z = -101
 }
-controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (INPUT_MODE == INPUT_GAME) {
-        DoAction(STATE_ATTACK)
+controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
+        DoAction(STATE_AIMING)
     }
 })
 function GetDistance (x1: number, x2: number, y1: number, y2: number) {
     return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
 }
+controller.menu.onEvent(ControllerButtonEvent.Pressed, function () {
+    SetInputMode(INPUT_LOCKED)
+    myMenu = miniMenu.createMenuFromArray([miniMenu.createMenuItem("[BUY] $1M", assets.image`lootReward27`)])
+    miniMenu.setStyleProperty(myMenu, miniMenu.StyleKind.Default, miniMenu.StyleProperty.IconOnly, 1)
+    miniMenu.setFrame(myMenu, assets.image`lootReward27`)
+})
 function DoAction (Action: string) {
     if (!(HasState(STATE_ULTIMATE)) && GAME_RUNNING) {
         if (!(HasState(STATE_CASTING))) {
@@ -1398,11 +1717,6 @@ function SetupStatusBars () {
         }
     })
 }
-controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (INPUT_MODE == INPUT_GAME) {
-        DoAction(STATE_CASTING)
-    }
-})
 function CastAttack () {
     for (let index = 0; index < 3; index++) {
         if (GetClosestLivingEntity()) {
@@ -1415,7 +1729,6 @@ function CastAttack () {
 }
 function StartGame () {
     sprites.destroyAllSpritesOfKind(SpriteKind.SplashScreen)
-    StartingConstruction()
     CreatePlayerComponent()
     InventorySlotManager()
     INPUT_MODE = INPUT_GAME
@@ -1431,38 +1744,32 @@ function PLAYER_PASSIVE_REGENERATION () {
         }
     }
 }
-controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (INPUT_MODE == INPUT_GAME) {
-        DoAction(STATE_AIMING)
-    }
-})
-sprites.onOverlap(SpriteKind.Projectile, SpriteKind.Enemy, function (sprite, otherSprite) {
-    if (sprites.readDataString(sprite, "ProjectileType") == "PROJECTILE_FIREBALL") {
-        if (!(sprites.readDataSprite(sprite, "Instigator") == otherSprite)) {
-            AddExplosion(EXPLOSION_FIREBALL, 2, 3, sprite.x, sprite.y, sprites.readDataSprite(sprite, "Instigator"))
-            sprites.destroy(sprite)
-        }
-    }
-})
-controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (INPUT_MODE == INPUT_GAME) {
-        DoAction(STATE_ULTIMATE)
+controller.B.onEvent(ControllerButtonEvent.Released, function () {
+    if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
+        RemoveState(STATE_ULTIMATE)
     }
 })
 controller.down.onEvent(ControllerButtonEvent.Released, function () {
-    if (INPUT_MODE == INPUT_GAME) {
+    if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
         if (!(HasState(STATE_ULTIMATE))) {
             RemoveState(STATE_AIMING)
             AimingBow(false)
         }
     }
 })
-sprites.onOverlap(SpriteKind.Player, SpriteKind.Explosion, function (sprite, otherSprite) {
-    DoExplosionDamage(sprite, sprites.readDataSprite(otherSprite, "Instigator"))
-})
-controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (INPUT_MODE == INPUT_GAME) {
-        DoAction(STATE_JUMP)
+sprites.onOverlap(SpriteKind.Projectile, SpriteKind.Enemy, function (sprite, otherSprite) {
+    if (sprites.readDataString(sprite, "ProjectileType") == "PROJECTILE_FIREBALL") {
+        if (!(sprites.readDataSprite(sprite, "Instigator") == otherSprite)) {
+            AddExplosion(EXPLOSION_FIREBALL, 2, 3, sprite.x, sprite.y, sprite)
+            sprites.destroy(sprite)
+        }
+    }
+    if (sprites.readDataString(sprite, "ProjectileType") == "PROJECTILE_ARROW") {
+        if (!(sprites.readDataSprite(sprite, "Instigator") == otherSprite)) {
+            DoDamage(otherSprite, sprite)
+            AddExplosion(EXPLOSION_FIREBALL, 2, 3, sprite.x, sprite.y, sprite)
+            sprites.destroy(sprite)
+        }
     }
 })
 let TEXT_MANA: TextSprite = null
@@ -1470,11 +1777,14 @@ let TEXT_HP: TextSprite = null
 let ICON_CHARACTER: Sprite = null
 let LastCeilingForeground: Sprite = null
 let STATE_AIMING_DURATION = 0
+let myMenu: Sprite = null
 let LastCeilingBackground: Sprite = null
 let Character_Bow: Sprite = null
 let Character_Shield: Sprite = null
 let ClosestEnemyDistance = 0
 let ClosestEnemy: Sprite = null
+let Instructions: Sprite = null
+let textSprite: TextSprite = null
 let ULTIMATE_CHARGE = 0
 let PlayerArrowDistance = 0
 let PlayerArrowDY = 0
@@ -1488,38 +1798,43 @@ let angle = 0
 let j = 0
 let LevelUps = 0
 let CharacterStates: string[] = []
-let myMenu: Sprite = null
 let ProjectileDY = 0
 let ProjectileDX = 0
 let Fireball: Sprite = null
 let ENTITY_ATTACK_DAMAGE: number[][] = []
 let ENTITY_SPEED_INDEX: number[][] = []
 let ENTITY_HEALTH_INDEX: number[][] = []
-let ENTITY_ANIM_IDLERUN: Image[][][] = []
 let STATE_IDLERUN = ""
-let STATE_CASTING = ""
 let STATE_AIMING = ""
+let STATE_BLOCKING = ""
 let STATE_JUMP = ""
+let INPUT_LOCKED = ""
 let Slot: Sprite = null
-let GAME_PLAYER_LEVEL = 0
 let TEXT_CHARACTER_LEVEL: TextSprite = null
+let MENU_SHOW_SUCCESS: Sprite = null
+let MENU_SELECT_OPTION: Sprite = null
 let ENTITY_HURT_FRAME: Image[][] = []
+let ENTITY_ANIM_IDLERUN: Image[][][] = []
 let GAME_PLAY_BUTTON: Sprite = null
 let GAME_LOGO: Sprite = null
 let GAME_SPLASH_TEXT: TextSprite = null
-let STATE_BLOCKING = ""
-let STATE_ULTIMATE = ""
-let INPUT_GAME = ""
-let GAME_PLAYER_XP = 0
 let GAME_PLAYER_XP_NEEDED = 0
 let SB_Player_XP: StatusBarSprite = null
 let SB_Player_Mana: StatusBarSprite = null
-let Character: Sprite = null
 let SB_Player_HP: StatusBarSprite = null
+let LEVEL_BANNER: Sprite = null
+let GAME_PLAYER_XP = 0
+let GAME_PLAYER_LEVEL = 0
 let PetrifiedWither_Star: Sprite = null
 let PetrifiedWither_Arms: Sprite = null
+let Character: Sprite = null
+let STATE_ULTIMATE = ""
+let MENU_SAVELOAD: Sprite = null
 let SB_ENTITY: StatusBarSprite = null
 let Entity: Sprite = null
+let STATE_CASTING = ""
+let INPUT_GAME = ""
+let INPUT_MODE = ""
 let LastFloorBackground: Sprite = null
 let LastFloorForeground: Sprite = null
 let Backdrops: Image[][][] = []
@@ -1530,20 +1845,19 @@ let ExplosionEffect: Sprite = null
 let EffectSystem: Sprite = null
 let IFrameDuration = 0
 let STATE_ATTACK = ""
-let INPUT_LOCKED = ""
-let INPUT_MODE = ""
+let bMenuOpen = false
+let GAME_INTRO_RUNNING = false
 let GAME_RUNNING = false
+music.setVolume(255)
 GAME_RUNNING = false
-INPUT_MODE = INPUT_LOCKED
+GAME_INTRO_RUNNING = false
 spriteutils.setConsoleOverlay(false)
-tiles.setCurrentTilemap(tilemap`level1`)
+tiles.setCurrentTilemap(tilemap`overworld_tilemap`)
 scene.centerCameraAt(scene.cameraProperty(CameraProperty.X), scene.cameraProperty(CameraProperty.Y) + 6)
+StartingConstruction()
+DATA_CHECK()
 ShowSplashScreen()
-pauseUntil(() => controller.A.isPressed())
+pauseUntil(() => controller.A.isPressed() && !(bMenuOpen))
+Cutscene(0)
 StartGame()
-timer.background(function () {
-    while (true) {
-        AddEntity(11, tiles.getTileLocation(10, 6))
-        pause(650)
-    }
-})
+Play_Level(1)
