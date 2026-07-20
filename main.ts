@@ -11,6 +11,20 @@ namespace StatusBarKind {
     export const XP = StatusBarKind.create()
     export const player = StatusBarKind.create()
 }
+sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSprite) {
+    if (HasState(STATE_ATTACK)) {
+        while (HasState(STATE_ATTACK)) {
+            DoDamage(otherSprite, sprite)
+            pause(IFrameDuration)
+        }
+    } else if (HasState(STATE_BLOCKING)) {
+        DoDamage(otherSprite, sprite)
+        pause(IFrameDuration)
+    } else {
+        DoDamage(sprite, otherSprite)
+        pause(IFrameDuration * 2)
+    }
+})
 function AddEffect (Duration: number, x: number, y: number) {
     EffectSystem = sprites.create(img`
         . . . . . . . . . . . . . . . . 
@@ -183,6 +197,24 @@ function AddEntity (ID: number, Location: tiles.Location) {
     100,
     true
     )
+}
+function AwaitLevelCompleted () {
+    timer.background(function () {
+        pauseUntil(() => !(ExistsLivingEnemy()))
+        timer.after(500, function () {
+            LEVEL_RECAP = sprites.createProjectileFromSide(assets.image`StatBlockSprite4`, 0, 0)
+            LEVEL_RECAP.z = 20000
+            LEVEL_RECAP.ay = 400
+            LEVEL_RECAP.setKind(SpriteKind.SplashScreen)
+            LEVEL_RECAP.setFlag(SpriteFlag.StayInScreen, false)
+            LEVEL_RECAP.setFlag(SpriteFlag.GhostThroughWalls, true)
+            LEVEL_RECAP.setFlag(SpriteFlag.AutoDestroy, false)
+            pauseUntil(() => LEVEL_RECAP.y <= 60)
+            LEVEL_RECAP.ay = 0
+            LEVEL_RECAP.vy = 0
+            scene.cameraShake(4, 100)
+        })
+    })
 }
 function MENU_SAVE_LOAD_START () {
     bMenuOpen = true
@@ -457,12 +489,23 @@ function DATA_SAVE (SaveFile: number) {
 }
 function Play_Level (level: number) {
     LEVEL_BANNER = sprites.createProjectileFromSide(assets.image`level_banner_1`, -50, 0)
-    tiles.placeOnTile(LEVEL_BANNER, tiles.getTileLocation(12, 4))
+    tiles.placeOnTile(LEVEL_BANNER, tiles.getTileLocation(14, 4))
+    LEVEL_BANNER.setKind(SpriteKind.SplashScreen)
     LEVEL_BANNER.z = 20000
     LEVEL_BANNER.lifespan = 12000
     LEVEL_BANNER.setFlag(SpriteFlag.StayInScreen, false)
     LEVEL_BANNER.setFlag(SpriteFlag.GhostThroughWalls, true)
     LEVEL_BANNER.setFlag(SpriteFlag.AutoDestroy, false)
+    timer.background(function () {
+        animation.runImageAnimation(
+        LEVEL_BANNER,
+        assets.animation`AllLevelBannersAnim`,
+        50,
+        false
+        )
+        pause(level * 50 - 50)
+        animation.stopAnimation(animation.AnimationTypes.ImageAnimation, LEVEL_BANNER)
+    })
     timer.background(function () {
         for (let index = 0; index < 10; index++) {
             music.play(music.createSoundEffect(WaveShape.Square, 200, 1, 255, 0, 300, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
@@ -479,6 +522,7 @@ function Play_Level (level: number) {
                     AddEntity(14, tiles.getTileLocation(10, 6))
                     timer.after(1000, function () {
                         AddEntity(15, tiles.getTileLocation(10, 6))
+                        AwaitLevelCompleted()
                     })
                 })
             })
@@ -633,6 +677,14 @@ function ShowSplashScreen () {
 }
 function GetEntity_Frame_Hurt (ID: number) {
     return ENTITY_HURT_FRAME[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
+}
+function ExistsLivingEnemy () {
+    for (let value of sprites.allOfKind(SpriteKind.Enemy)) {
+        if (sprites.readDataBoolean(value, "IsAlive")) {
+            return true
+        }
+    }
+    return false
 }
 function MENU_SAVE_LOAD_NEXT (Save: string, Index: number) {
     MENU_SELECT_OPTION = miniMenu.createMenuFromArray([
@@ -1058,9 +1110,6 @@ controller.menu.onEvent(ControllerButtonEvent.Pressed, function () {
 function HasState (State: string) {
     return CharacterStates.indexOf(State) >= 0
 }
-sprites.onOverlap(SpriteKind.Player, SpriteKind.Explosion, function (sprite, otherSprite) {
-    DoDamage(sprite, otherSprite)
-})
 function XPLevelUpManager () {
     GAME_PLAYER_XP_NEEDED = Math.round(1200 * 1.1 ** (GAME_PLAYER_LEVEL - 1))
     if (GAME_PLAYER_XP > GAME_PLAYER_XP_NEEDED) {
@@ -1803,6 +1852,13 @@ controller.B.onEvent(ControllerButtonEvent.Released, function () {
         RemoveState(STATE_ULTIMATE)
     }
 })
+function ClearUnhealthyStates () {
+    RemoveState(STATE_AIMING)
+    RemoveState(STATE_ATTACK)
+    RemoveState(STATE_BLOCKING)
+    RemoveState(STATE_CASTING)
+    RemoveState(STATE_ULTIMATE)
+}
 controller.down.onEvent(ControllerButtonEvent.Released, function () {
     if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
         if (!(HasState(STATE_ULTIMATE))) {
@@ -1811,19 +1867,8 @@ controller.down.onEvent(ControllerButtonEvent.Released, function () {
         }
     }
 })
-sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSprite) {
-    if (HasState(STATE_ATTACK)) {
-        while (HasState(STATE_ATTACK)) {
-            DoDamage(otherSprite, sprite)
-            pause(IFrameDuration)
-        }
-    } else if (HasState(STATE_BLOCKING)) {
-        DoDamage(otherSprite, sprite)
-        pause(IFrameDuration)
-    } else {
-        DoDamage(sprite, otherSprite)
-        pause(IFrameDuration * 2)
-    }
+sprites.onOverlap(SpriteKind.Player, SpriteKind.Explosion, function (sprite, otherSprite) {
+    DoDamage(sprite, otherSprite)
 })
 let TEXT_MANA: TextSprite = null
 let TEXT_HP: TextSprite = null
@@ -1860,7 +1905,6 @@ let ENTITY_HEALTH_INDEX: number[][] = []
 let STATE_IDLERUN = ""
 let STATE_CASTING = ""
 let STATE_AIMING = ""
-let STATE_ATTACK = ""
 let STATE_JUMP = ""
 let INPUT_LOCKED = ""
 let Slot: Sprite = null
@@ -1881,12 +1925,11 @@ let GAME_PLAYER_XP = 0
 let GAME_PLAYER_LEVEL = 0
 let PetrifiedWither_Star: Sprite = null
 let PetrifiedWither_Arms: Sprite = null
-let IFrameDuration = 0
 let Character: Sprite = null
-let STATE_BLOCKING = ""
 let STATE_ULTIMATE = ""
 let INPUT_GAME = ""
 let MENU_SAVELOAD: Sprite = null
+let LEVEL_RECAP: Sprite = null
 let SB_ENTITY: StatusBarSprite = null
 let Entity: Sprite = null
 let INPUT_MODE = ""
@@ -1898,6 +1941,9 @@ let EXPLOSION_FIREBALL = ""
 let EXPLOSION_MAGIC = ""
 let ExplosionEffect: Sprite = null
 let EffectSystem: Sprite = null
+let IFrameDuration = 0
+let STATE_BLOCKING = ""
+let STATE_ATTACK = ""
 let bMenuOpen = false
 let GAME_INTRO_RUNNING = false
 let GAME_RUNNING = false
@@ -1912,4 +1958,4 @@ DATA_CHECK()
 ShowSplashScreen()
 pauseUntil(() => controller.A.isPressed() && !(bMenuOpen))
 StartGame()
-Play_Level(1)
+Play_Level(5)
