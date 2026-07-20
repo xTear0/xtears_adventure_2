@@ -11,17 +11,6 @@ namespace StatusBarKind {
     export const XP = StatusBarKind.create()
     export const player = StatusBarKind.create()
 }
-sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSprite) {
-    if (HasState(STATE_ATTACK)) {
-        while (HasState(STATE_ATTACK)) {
-            DoDamage(otherSprite, sprite)
-            pause(IFrameDuration)
-        }
-    } else {
-        DoDamage(sprite, otherSprite)
-        pause(IFrameDuration * 2)
-    }
-})
 function AddEffect (Duration: number, x: number, y: number) {
     EffectSystem = sprites.create(img`
         . . . . . . . . . . . . . . . . 
@@ -170,32 +159,11 @@ function ScrollingBackground (Dimension: number, Scrolling: boolean) {
 function SetInputMode (Mode: string) {
     INPUT_MODE = Mode
 }
-controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
-        DoAction(STATE_CASTING)
-    }
-})
 function AddEntity (ID: number, Location: tiles.Location) {
-    Entity = sprites.createProjectileFromSide(img`
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        `, 0, 0)
+    Entity = sprites.createProjectileFromSide(GetEntity_Frame_Hurt(ID), 0, 0)
     Entity.setKind(SpriteKind.Enemy)
     sprites.setDataBoolean(Entity, "IsAlive", true)
+    sprites.setDataBoolean(Entity, "IsHitReacting", false)
     sprites.setDataNumber(Entity, "ID", ID)
     sprites.setDataNumber(Entity, "Health", GetEntity_Health_Index(ID))
     sprites.setDataNumber(Entity, "MaxHealth", GetEntity_Health_Index(ID))
@@ -203,20 +171,18 @@ function AddEntity (ID: number, Location: tiles.Location) {
     Entity.setVelocity(GetEntity_Speed_Index(ID), 0)
     Entity.setStayInScreen(false)
     Entity.setFlag(SpriteFlag.GhostThroughWalls, true)
-    Entity.setFlag(SpriteFlag.AutoDestroy, true)
+    Entity.setFlag(SpriteFlag.DestroyOnWall, false)
+    Entity.setFlag(SpriteFlag.AutoDestroy, false)
     SB_ENTITY = statusbars.create(10, 3, StatusBarKind.Health)
     SB_ENTITY.attachToSprite(Entity, 0, 1)
-    if (!(ID == 21)) {
-        animation.runImageAnimation(
-        Entity,
-        GetEntity_Anim_IdleRun(ID),
-        100,
-        true
-        )
-        tiles.placeOnTile(Entity, tiles.getTileLocation(Location.column, Location.row))
-    } else {
-        CreatePetrifiedWither(Entity)
-    }
+    tiles.placeOnTile(Entity, tiles.getTileLocation(Location.column, Location.row))
+    Entity.bottom = 112
+    animation.runImageAnimation(
+    Entity,
+    GetEntity_Anim_IdleRun(ID),
+    100,
+    true
+    )
 }
 function MENU_SAVE_LOAD_START () {
     bMenuOpen = true
@@ -332,42 +298,59 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
     }
 })
 function DoDamage (Victim: Sprite, Instigator: Sprite) {
-    if (Victim != Instigator) {
-        if (Instigator.kind() == SpriteKind.Explosion) {
-            sprites.setDataNumber(Victim, "Health", sprites.readDataNumber(Victim, "Health") - sprites.readDataNumber(Instigator, "BlastDamage"))
-        } else if (Instigator.kind() == SpriteKind.Projectile) {
-            sprites.setDataNumber(Victim, "Health", sprites.readDataNumber(Victim, "Health") - sprites.readDataNumber(Instigator, "ProjectileDamage"))
-        } else {
-            sprites.setDataNumber(Victim, "Health", sprites.readDataNumber(Victim, "Health") - sprites.readDataNumber(Instigator, "AttackDamage"))
+    if (HasState(STATE_BLOCKING) && !(Victim == Character)) {
+        while (Victim.overlapsWith(Instigator)) {
+            scene.cameraShake(4, 100)
+            music.play(music.createSoundEffect(WaveShape.Noise, 784, 1486, 255, 0, 150, SoundExpressionEffect.Warble, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
+            Victim.x += 10 * (16 / Victim.height)
+            pause(IFrameDuration / 8)
+        }
+    } else {
+        if (!(sprites.readDataBoolean(Victim, "IsHitReacting"))) {
+            if (Victim != Instigator) {
+                music.play(music.createSoundEffect(WaveShape.Square, 200, 1, 255, 0, 100, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
+                if (Instigator.kind() == SpriteKind.Explosion) {
+                    sprites.setDataNumber(Victim, "Health", sprites.readDataNumber(Victim, "Health") - sprites.readDataNumber(Instigator, "BlastDamage"))
+                    sprites.setDataBoolean(Victim, "IsHitReacting", true)
+                } else if (Instigator.kind() == SpriteKind.Projectile) {
+                    sprites.setDataNumber(Victim, "Health", sprites.readDataNumber(Victim, "Health") - sprites.readDataNumber(Instigator, "ProjectileDamage"))
+                    sprites.setDataBoolean(Victim, "IsHitReacting", true)
+                } else {
+                    sprites.setDataNumber(Victim, "Health", sprites.readDataNumber(Victim, "Health") - sprites.readDataNumber(Instigator, "AttackDamage"))
+                    sprites.setDataBoolean(Victim, "IsHitReacting", true)
+                }
+                timer.after(IFrameDuration, function () {
+                    sprites.setDataBoolean(Victim, "IsHitReacting", false)
+                })
+            }
+            if (Victim != Character) {
+                animation.stopAnimation(animation.AnimationTypes.ImageAnimation, Victim)
+                Victim.setImage(GetEntity_Frame_Hurt(sprites.readDataNumber(Victim, "ID")))
+                Victim.vx += 200 * (16 / Victim.height)
+                timer.after(IFrameDuration, function () {
+                    Victim.vx = GetEntity_Speed_Index(sprites.readDataNumber(Victim, "ID"))
+                    animation.runImageAnimation(
+                    Victim,
+                    GetEntity_Anim_IdleRun(sprites.readDataNumber(Victim, "ID")),
+                    100,
+                    true
+                    )
+                })
+            } else {
+                scene.cameraShake(5, 200)
+                Victim.setImage(assets.image`playerAnimations30`)
+                timer.after(IFrameDuration, function () {
+                    animation.runImageAnimation(
+                    Victim,
+                    assets.animation`player_idlerun`,
+                    100,
+                    true
+                    )
+                })
+            }
+            TryManageKilledEntity(Victim)
         }
     }
-    music.play(music.createSoundEffect(WaveShape.Square, 200, 1, 255, 0, 100, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
-    if (Victim != Character) {
-        animation.stopAnimation(animation.AnimationTypes.ImageAnimation, Victim)
-        Victim.setImage(GetEntity_Frame_Hurt(sprites.readDataNumber(Victim, "ID")))
-        Victim.vx += 200
-        timer.after(IFrameDuration, function () {
-            Victim.vx = GetEntity_Speed_Index(sprites.readDataNumber(Victim, "ID"))
-            animation.runImageAnimation(
-            Victim,
-            GetEntity_Anim_IdleRun(sprites.readDataNumber(Victim, "ID")),
-            100,
-            true
-            )
-        })
-    } else {
-        scene.cameraShake(5, 200)
-        Victim.setImage(assets.image`playerAnimations30`)
-        timer.after(IFrameDuration, function () {
-            animation.runImageAnimation(
-            Victim,
-            assets.animation`player_idlerun`,
-            100,
-            true
-            )
-        })
-    }
-    TryManageKilledEntity(Victim)
 }
 function CreatePetrifiedWither (Surrogate: Sprite) {
     animation.runImageAnimation(
@@ -470,11 +453,7 @@ function DATA_CHECK () {
     }
 }
 function DATA_SAVE (SaveFile: number) {
-    blockSettings.writeNumberArray("save_" + SaveFile, [
-    GAME_PLAYER_LEVEL,
-    GAME_PLAYER_XP,
-    0
-    ])
+    blockSettings.writeNumberArray("save_" + SaveFile, [GAME_PLAYER_LEVEL, GAME_PLAYER_XP, 0])
 }
 function Play_Level (level: number) {
     LEVEL_BANNER = sprites.createProjectileFromSide(assets.image`level_banner_1`, -50, 0)
@@ -486,12 +465,24 @@ function Play_Level (level: number) {
     LEVEL_BANNER.setFlag(SpriteFlag.AutoDestroy, false)
     timer.background(function () {
         for (let index = 0; index < 10; index++) {
-            music.play(music.createSoundEffect(WaveShape.Square, 1724, 1, 255, 0, 300, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
+            music.play(music.createSoundEffect(WaveShape.Square, 200, 1, 255, 0, 300, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
             pause(300)
         }
     })
     timer.after(1000, function () {
         AddEntity(11, tiles.getTileLocation(10, 6))
+        timer.after(1000, function () {
+            AddEntity(12, tiles.getTileLocation(10, 6))
+            timer.after(1000, function () {
+                AddEntity(13, tiles.getTileLocation(10, 6))
+                timer.after(1000, function () {
+                    AddEntity(14, tiles.getTileLocation(10, 6))
+                    timer.after(1000, function () {
+                        AddEntity(15, tiles.getTileLocation(10, 6))
+                    })
+                })
+            })
+        })
     })
 }
 function UpdateStatusBars () {
@@ -506,6 +497,13 @@ function UpdateStatusBars () {
         value4.value = sprites.readDataNumber(value4.spriteAttachedTo(), "Health")
     }
 }
+controller.left.onEvent(ControllerButtonEvent.Released, function () {
+    if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
+        if (!(HasState(STATE_ULTIMATE))) {
+            RemoveState(STATE_BLOCKING)
+        }
+    }
+})
 function ShowSplashScreen () {
     ScrollingBackground(0, true)
     GAME_SPLASH_TEXT = textsprite.create([
@@ -685,11 +683,11 @@ function SetLevelText () {
     TEXT_CHARACTER_LEVEL.setText("Lv" + GAME_PLAYER_LEVEL)
 }
 function InventorySlotManager () {
-    for (let index2 = 0; index2 <= 7; index2++) {
+    for (let index22 = 0; index22 <= 7; index22++) {
         Slot = sprites.createProjectileFromSide(assets.image`Slot`, 0, 0)
         Slot.setKind(SpriteKind.InventorySlot)
-        Slot.setPosition(scene.cameraProperty(CameraProperty.Left) + (7 + 11 * index2), scene.cameraProperty(CameraProperty.Bottom) - 7)
-        sprites.setDataNumber(Slot, "Slot", index2 + 1)
+        Slot.setPosition(scene.cameraProperty(CameraProperty.Left) + (7 + 11 * index22), scene.cameraProperty(CameraProperty.Bottom) - 7)
+        sprites.setDataNumber(Slot, "Slot", index22 + 1)
         Slot.z = 10
     }
 }
@@ -765,117 +763,111 @@ function StartingConstruction () {
     assets.image`mobHurt`,
     assets.image`mobHurt2`,
     assets.image`mobHurt3`,
-    assets.image`mobHurt4`
+    assets.image`mobHurt4`,
+    assets.image`mobHurt15`,
+    assets.image`mobHurt7`,
+    assets.image`mobHurt8`,
+    assets.image`mobHurt9`,
+    assets.image`mobHurt10`,
+    assets.image`skeleton_spawner_hurt`,
+    img`
+        ...................22322222233333...............
+        ...................222222233333333..............
+        ..................22223333333333333.............
+        ..................22c23333333333333.............
+        .................2222233333333333333............
+        .................2222233333333333333............
+        .................2222344332223333333............
+        ................22224445334332333333............
+        ................22234555334433333333............
+        .................223455f435443333333............
+        .................223333443554433333.............
+        .................22333443335433333..............
+        .................2235333333333333...............
+        ...................3553333332333................
+        ...................35534332323322.22222.........
+        ...................335543322232222222222........
+        ....................354332233222222222222.......
+        .......222...2222222334332332222222222222.......
+        .......222..2223222a333333332222322222222.......
+        .......222222223322aaa3333332223322232222.......
+        ......2222222222332333aa3aaa22..22223222........
+        ......2222222222223f3aaa3aa22222222222222.......
+        ......222222222222233aa222222222222222222..2....
+        ......222222222222223222422222222222222222.2....
+        ......22222223222222222255222222222222222222....
+        ......22222223322222222255554c22222222322222....
+        ......222.333333222a225555445422222223322222....
+        .....222223333f3322a22555544542222223322..22....
+        .....223323333322222245455555222222c222222222...
+        .....2223222233222222455452222222222c22322222...
+        .....2222322223322222455222222222233a22333222...
+        .....22223322222332222452222222aa3aaa22333322...
+        .....2223a33222223aa25552222422ac2a22223f.222...
+        .....2223222222222c225555aa422ac222222333.222...
+        .....222322232222222a455254422c222222233.2222...
+        .....222322233322222aa555242222222222c.a22222...
+        .....222322233322222222a522a2233222332a.a2222...
+        .....222322aa3323222222a42222223222..22aa2222...
+        .....222222aa2223322222aa2223222322..22aa2222...
+        .....222222aa222.222c22aa2223222322.a22233222...
+        .....22222aaa222.222222aa2222a222222aa2232222...
+        ....22.222aaa22222222233aaa2222322222a22322222..
+        ....222222aaa2222222223222aa222222222a22322222..
+        ....22222aaaa222222223222aaa2a2222222223322222..
+        ....22222aaa2222233232222aaa2a22.3222222222.22..
+        ....22222aa222222.2222223aa22222.3222c2322222...
+        ....222222222222222222233aa2.22..a22223322222...
+        ....222222222222222222333aa2.22..a222233322.2...
+        ....222222222222222333333aa.22.a.aa2222332222...
+        ....222222222222...33333aaf.22.aaaa2222322222...
+        ...2222222222222...3.333a2.22..aaa33222222222...
+        ...22222222222a2...33333a2.2...aaa33222222222...
+        ...2222222222aa2..3333332222...aaa33322222222...
+        ..2222222222aaa2...33333222....aaa33322222222...
+        ..22222222aaaaa....33332222....aaaa...2222222...
+        ...22222aaaaaaa....33332222...aaaaa...222222....
+        ....22.2aaaaaa....3323222222..aaa.a...2222222...
+        .......2aaaaaa..3.33222222222..a..a....2.2222...
+        .......2aaaaa..333322222222222.a..a....2..222...
+        .......2aaaa..3333222222222222.a2.a....2........
+        ..........aa.3.333222222222222222222.222........
+        ..........aa333332.222222222222222222222........
+        ..........a.3333.22222222222222222222222222.....
+        ..........a.3332222222222.22222222222222222.....
+        `,
+    assets.image`mobHurt11`,
+    assets.image`mobHurt12`,
+    assets.image`mobHurt13`,
+    assets.image`mobHurt5`,
+    assets.image`mobHurt6`,
+    assets.image`mobHurt17`,
+    assets.image`mobHurt18`,
+    assets.image`mobHurt14`
     ], [
-    img`
-        ...........................................................................
-        ...........................................................................
-        ...........................................................................
-        ...........................................................................
-        ...........................................................................
-        ...........................................c...............................
-        .........................................cc..........c.....................
-        ....................................c...c.c.....c...c......................
-        ...................................c...cc.c.a.cc....c......................
-        ................................aa.cccc...c.acca..c.c......................
-        ...............................a.aa.accacc.aaca..c.c.......................
-        ..............................ca.ca.ac.cc.ca.ca..c.c.......................
-        .............................cacacacacccccaccac.ccc........................
-        ..............................cca.aca.ccccaccacaacca.......................
-        ..............................ccaaacaccaaaaaccaacca........................
-        ..............................ccaaaaaaaaccaacacacaa.a......................
-        ...............................f99faaff99fcaaaacac.a.....c.................
-        ...............................f99faaff99fcacaca.ca.....c..................
-        ...............................f11fcaff11fcacaacc.c.....cc.c...............
-        ...............................acccfbcccccaaaaa.cac....accc................
-        ...............................bbbbfbccbbbbaaacca...a..cccc................
-        ...................c.c.........abfbfbfffbfbaaa.ca...a.caccc.a..............
-        ....................cc.........abfffffffbfbcaaaa....acaccaaaa..............
-        ....................cccc...c...fffffffffffbcffac..aaaacccaaa...............
-        ......................c.c..ff.....fffffffffffffaaafccacaaaf................
-        .......................ccca.cf.c..fffffffffffffaaaffcaaaaa9................
-        .......................cccc.cffc...fffffffffffcaaaffcccfaaa...c............
-        .....................a.cccacccf...bfffffffffffbcaafccccfabb..c.............
-        .....................aaaaccacccc..bcfffffbffbfbccbfcccfbc.c.c..............
-        ......................aaacccacfccf.bfcbffbfbbaaaabffcccffc.c...............
-        .......................faaacccffcf.bbcbccbcffbbbaffffbccfbc................
-        .......................9aaaacccfccfccccaccabbbbbbabcbccfbc....c............
-        .......................aaafcccffcffbbaaccffffffbbaa.cfffc....c.............
-        .......................bbafcccffffbbaaccf.....ffbbacfff.c..cc..............
-        .......................c.cbfcccfffbbaac........ffbacccffc.c..cc............
-        ........................cffccccfcfbbaac........bbbacccafcc.cc..............
-        ........................bfcc.cfff.bbaac.......bbb.acfcc.acc................
-        .........................c...ffff.bbbbbbb........aacfcc....................
-        ...............................fffbbbbaaa........afcf.c....................
-        ...............................f.ccccaaaaa.f...aaacff......................
-        ................................f.cccfcaaaaf..fffcfff......................
-        ...............................c.ffcfffcfffff.ffcfcf.......................
-        ..................................ffcfffcff.f.ffcf.........................
-        ..................................ccffffc.fff.ff...........................
-        .................................c.cfff..cccf.ff...........................
-        ................................c.c.fff.cc.cff.f...........................
-        ...............................c.fc.ff..c...fffccc.........................
-        ................................fc..ff.......fffc..........................
-        .................................c...f........ffff.cc......................
-        ................................c...f.........ccffcc.......................
-        .............................................cc...fff......................
-        ...........................................................................
-        `,
-    img`
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        `,
-    img`
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        `,
-    img`
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        `
+    assets.image`mobHurt24`,
+    assets.image`mobHurt25`,
+    assets.image`mobHurt26`,
+    assets.image`mobHurt27`,
+    assets.image`mobHurt28`,
+    assets.image`mobHurt29`,
+    assets.image`mobHurt30`,
+    assets.image`mobHurt31`,
+    assets.image`mobHurt32`,
+    assets.image`mobHurt33`,
+    assets.image`mobHurt34`,
+    assets.image`mobHurt40`,
+    assets.image`mobHurt41`,
+    assets.image`mobHurt36`,
+    assets.image`mobHurt35`,
+    assets.image`mobHurt37`,
+    assets.image`mobHurt38`,
+    assets.image`mobHurt39`,
+    assets.image`mobHurt42`,
+    assets.image`mobHurt44`,
+    assets.image`mobHurt43`
     ], [
+    assets.image`enderman_hurt`,
     img`
         . . . . . . . . . . . . . . . . 
         . . . . . . . . . . . . . . . . 
@@ -894,108 +886,150 @@ function StartingConstruction () {
         . . . . . . . . . . . . . . . . 
         . . . . . . . . . . . . . . . . 
         `,
-    img`
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        `,
-    img`
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        `,
-    img`
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        . . . . . . . . . . . . . . . . 
-        `
+    assets.image`mobHurt45`,
+    assets.image`mobHurt45`
     ]]
     ENTITY_HEALTH_INDEX = [[
     20,
+    30,
+    45,
+    65,
+    250,
+    14,
+    22,
+    32,
+    48,
+    25,
+    500,
+    20,
+    30,
+    300,
     20,
     20,
-    20
+    35,
+    125,
+    80
     ], [
     20,
     20,
-    20,
-    20
+    35,
+    50,
+    75,
+    120,
+    250,
+    40,
+    95,
+    30,
+    300,
+    30,
+    90,
+    30,
+    40,
+    25,
+    50,
+    1000,
+    500,
+    1000
     ], [
-    20,
-    20,
-    20,
-    20
+    40,
+    1,
+    900,
+    900
     ]]
     ENTITY_SPEED_INDEX = [[
     40,
     40,
     40,
-    40
+    40,
+    30,
+    25,
+    25,
+    25,
+    25,
+    45,
+    10,
+    50,
+    45,
+    45,
+    30,
+    35,
+    55,
+    20,
+    10
     ], [
     40,
     40,
     40,
-    40
+    40,
+    40,
+    35,
+    35,
+    20,
+    20,
+    15,
+    12,
+    40,
+    40,
+    30,
+    55,
+    45,
+    45,
+    45,
+    20,
+    20,
+    20
     ], [
     40,
-    40,
-    40,
-    40
+    20,
+    20,
+    20
     ]]
     ENTITY_ATTACK_DAMAGE = [[
     10,
+    12,
+    14,
+    15,
+    20,
+    8,
+    8,
+    8,
+    8,
+    0,
+    20,
+    9,
+    9,
+    20,
     10,
-    10,
-    10
+    20,
+    40,
+    12,
+    40
     ], [
+    12,
+    14,
+    16,
+    25,
+    40,
+    60,
+    15,
+    15,
+    25,
+    28,
+    20,
+    30,
+    10,
+    24,
     10,
     10,
     10,
-    10
+    30,
+    30,
+    30
     ], [
-    10,
-    10,
-    10,
-    10
+    15,
+    100,
+    50,
+    50
     ]]
 }
 function AddVectorFireball (Instigator: Sprite, x: number, y: number, AccuracySpread: number) {
@@ -1015,6 +1049,12 @@ function AddVectorFireball (Instigator: Sprite, x: number, y: number, AccuracySp
     Fireball.startEffect(effects.fire, 2000)
     music.play(music.createSoundEffect(WaveShape.Noise, 1, 1631, 255, 0, 150, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
 }
+controller.menu.onEvent(ControllerButtonEvent.Pressed, function () {
+    SetInputMode(INPUT_LOCKED)
+    myMenu = miniMenu.createMenuFromArray([miniMenu.createMenuItem("[BUY] $1M", assets.image`lootReward27`)])
+    miniMenu.setStyleProperty(myMenu, miniMenu.StyleKind.Default, miniMenu.StyleProperty.IconOnly, 1)
+    miniMenu.setFrame(myMenu, assets.image`lootReward27`)
+})
 function HasState (State: string) {
     return CharacterStates.indexOf(State) >= 0
 }
@@ -1044,9 +1084,9 @@ function AddState (State: string, SelfMutex: boolean, MutexStates: string[], Add
     if (HasState(STATE_IDLERUN)) {
         CharacterStates.removeAt(CharacterStates.indexOf(STATE_IDLERUN))
     }
-    for (let index22 = 0; index22 <= CharacterStates.length - 1; index22++) {
-        if (MutexStates.indexOf(CharacterStates[index22]) >= 0 || (SelfMutex && CharacterStates[index22]) == State) {
-            CharacterStates.removeAt(index22)
+    for (let index222 = 0; index222 <= CharacterStates.length - 1; index222++) {
+        if (MutexStates.indexOf(CharacterStates[index222]) >= 0 || (SelfMutex && CharacterStates[index222]) == State) {
+            CharacterStates.removeAt(index222)
         }
     }
     if (AddFirst) {
@@ -1055,11 +1095,6 @@ function AddState (State: string, SelfMutex: boolean, MutexStates: string[], Add
         CharacterStates.push(State)
     }
 }
-controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
-        DoAction(STATE_BLOCKING)
-    }
-})
 sprites.onOverlap(SpriteKind.Enemy, SpriteKind.Enemy, function (sprite, otherSprite) {
     otherSprite.x += 1
 })
@@ -1127,12 +1162,18 @@ function PlayCheckedTimedStateAnimation (AnimationDuration: number, RemoveState2
     }
 }
 function TryManageKilledEntity (DeceasedEntity: Sprite) {
-    if (sprites.readDataNumber(DeceasedEntity, "Health") <= 0 && !(DeceasedEntity == Character) && sprites.readDataBoolean(DeceasedEntity, "IsAlive")) {
-        sprites.setDataBoolean(DeceasedEntity, "IsAlive", false)
-        info.changeScoreBy(10 * sprites.readDataNumber(DeceasedEntity, "MaxHealth"))
-        GAME_PLAYER_XP += 10 * sprites.readDataNumber(DeceasedEntity, "MaxHealth")
-        sprites.destroy(DeceasedEntity, effects.disintegrate, 100)
-        XPLevelUpManager()
+    if (sprites.readDataNumber(DeceasedEntity, "Health") <= 0) {
+        if (DeceasedEntity == Character) {
+            game.gameOver(false)
+        } else {
+            if (sprites.readDataBoolean(DeceasedEntity, "IsAlive")) {
+                sprites.setDataBoolean(DeceasedEntity, "IsAlive", false)
+                info.changeScoreBy(10 * sprites.readDataNumber(DeceasedEntity, "MaxHealth"))
+                GAME_PLAYER_XP += 10 * sprites.readDataNumber(DeceasedEntity, "MaxHealth")
+                sprites.destroy(DeceasedEntity, effects.disintegrate, 100)
+                XPLevelUpManager()
+            }
+        }
     }
 }
 function GetEntity_Anim_IdleRun (ID: number) {
@@ -1148,21 +1189,14 @@ function RemoveState (State: string) {
     }
     PlayCheckedTimedStateAnimation(0, false)
 }
-controller.left.onEvent(ControllerButtonEvent.Released, function () {
-    if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
-        if (!(HasState(STATE_ULTIMATE))) {
-            RemoveState(STATE_BLOCKING)
-        }
-    }
-})
 function GetEntity_Attack_Damage (ID: number) {
     return ENTITY_ATTACK_DAMAGE[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
 }
 sprites.onOverlap(SpriteKind.Projectile, SpriteKind.Player, function (sprite, otherSprite) {
     if (sprites.readDataString(sprite, "ProjectileType") == "PROJECTILE_FIREBALL") {
         if (!(sprites.readDataSprite(sprite, "Instigator") == otherSprite)) {
-            AddExplosion(EXPLOSION_FIREBALL, 2, 3, sprite.x, sprite.y, sprite)
             sprites.destroy(sprite)
+            AddExplosion(EXPLOSION_FIREBALL, 2, 3, sprite.x, sprite.y, sprite)
         }
     }
 })
@@ -1230,11 +1264,6 @@ function AimingBow (_true: boolean) {
         BOW_CHARGE = 0
     }
 }
-controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
-        DoAction(STATE_ATTACK)
-    }
-})
 sprites.onOverlap(SpriteKind.Enemy, SpriteKind.Explosion, function (sprite, otherSprite) {
     DoDamage(sprite, otherSprite)
 })
@@ -1317,6 +1346,11 @@ function LevelCompleted () {
 function GetEntity_Health_Index (ID: number) {
     return ENTITY_HEALTH_INDEX[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
 }
+controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
+        DoAction(STATE_BLOCKING)
+    }
+})
 scene.onHitWall(SpriteKind.Projectile, function (sprite, location) {
     if (sprites.readDataString(sprite, "ProjectileType") == "PROJECTILE_FIREBALL") {
         AddExplosion(EXPLOSION_FIREBALL, 2, 3, sprite.x, sprite.y, sprites.readDataSprite(sprite, "Instigator"))
@@ -1351,7 +1385,7 @@ function Cutscene (Scene: number) {
                                 color.clearFadeEffect()
                                 timer.after(500, function () {
                                     color.FadeToBlack.startScreenEffect(500)
-                                    timer.after(500, function () {
+                                    timer.after(300, function () {
                                         color.clearFadeEffect()
                                         music.play(music.createSong(assets.song`song_intro0`), music.PlaybackMode.InBackground)
                                         sprites.destroy(textSprite)
@@ -1372,6 +1406,7 @@ function Cutscene (Scene: number) {
                                                                     music.play(music.createSong(assets.song`intro_song1`), music.PlaybackMode.UntilDone)
                                                                     timer.background(function () {
                                                                         music.play(music.createSong(assets.song`intro_song2`), music.PlaybackMode.UntilDone)
+                                                                        music.play(music.createSong(assets.song`song_game_1`), music.PlaybackMode.LoopingInBackground)
                                                                     })
                                                                 })
                                                                 color.clearFadeEffect()
@@ -1525,8 +1560,8 @@ function CreatePlayerComponent () {
     tiles.placeOnTile(Character, tiles.getTileLocation(2, 6))
     Character.ay = 400
     CharacterStates = []
-    sprites.setDataNumber(Character, "Health", 50)
-    sprites.setDataNumber(Character, "MaxHealth", 50)
+    sprites.setDataNumber(Character, "Health", 100)
+    sprites.setDataNumber(Character, "MaxHealth", 100)
     sprites.setDataNumber(Character, "MaxMana", 100)
     sprites.setDataNumber(Character, "Mana", 100)
     sprites.setDataNumber(Character, "XP", 0)
@@ -1566,20 +1601,14 @@ function CreateBackground (num: number) {
     LastFloorBackground.left = num
     LastFloorBackground.z = -101
 }
-controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
+controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
     if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
-        DoAction(STATE_AIMING)
+        DoAction(STATE_ATTACK)
     }
 })
 function GetDistance (x1: number, x2: number, y1: number, y2: number) {
     return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
 }
-controller.menu.onEvent(ControllerButtonEvent.Pressed, function () {
-    SetInputMode(INPUT_LOCKED)
-    myMenu = miniMenu.createMenuFromArray([miniMenu.createMenuItem("[BUY] $1M", assets.image`lootReward27`)])
-    miniMenu.setStyleProperty(myMenu, miniMenu.StyleKind.Default, miniMenu.StyleProperty.IconOnly, 1)
-    miniMenu.setFrame(myMenu, assets.image`lootReward27`)
-})
 function DoAction (Action: string) {
     if (!(HasState(STATE_ULTIMATE)) && GAME_RUNNING) {
         if (!(HasState(STATE_CASTING))) {
@@ -1744,17 +1773,14 @@ function PLAYER_PASSIVE_REGENERATION () {
         }
     }
 }
-controller.B.onEvent(ControllerButtonEvent.Released, function () {
+controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
     if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
-        RemoveState(STATE_ULTIMATE)
+        DoAction(STATE_CASTING)
     }
 })
-controller.down.onEvent(ControllerButtonEvent.Released, function () {
+controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
     if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
-        if (!(HasState(STATE_ULTIMATE))) {
-            RemoveState(STATE_AIMING)
-            AimingBow(false)
-        }
+        DoAction(STATE_AIMING)
     }
 })
 sprites.onOverlap(SpriteKind.Projectile, SpriteKind.Enemy, function (sprite, otherSprite) {
@@ -1772,12 +1798,38 @@ sprites.onOverlap(SpriteKind.Projectile, SpriteKind.Enemy, function (sprite, oth
         }
     }
 })
+controller.B.onEvent(ControllerButtonEvent.Released, function () {
+    if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
+        RemoveState(STATE_ULTIMATE)
+    }
+})
+controller.down.onEvent(ControllerButtonEvent.Released, function () {
+    if (INPUT_MODE == INPUT_GAME && GAME_RUNNING) {
+        if (!(HasState(STATE_ULTIMATE))) {
+            RemoveState(STATE_AIMING)
+            AimingBow(false)
+        }
+    }
+})
+sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSprite) {
+    if (HasState(STATE_ATTACK)) {
+        while (HasState(STATE_ATTACK)) {
+            DoDamage(otherSprite, sprite)
+            pause(IFrameDuration)
+        }
+    } else if (HasState(STATE_BLOCKING)) {
+        DoDamage(otherSprite, sprite)
+        pause(IFrameDuration)
+    } else {
+        DoDamage(sprite, otherSprite)
+        pause(IFrameDuration * 2)
+    }
+})
 let TEXT_MANA: TextSprite = null
 let TEXT_HP: TextSprite = null
 let ICON_CHARACTER: Sprite = null
 let LastCeilingForeground: Sprite = null
 let STATE_AIMING_DURATION = 0
-let myMenu: Sprite = null
 let LastCeilingBackground: Sprite = null
 let Character_Bow: Sprite = null
 let Character_Shield: Sprite = null
@@ -1798,6 +1850,7 @@ let angle = 0
 let j = 0
 let LevelUps = 0
 let CharacterStates: string[] = []
+let myMenu: Sprite = null
 let ProjectileDY = 0
 let ProjectileDX = 0
 let Fireball: Sprite = null
@@ -1805,8 +1858,9 @@ let ENTITY_ATTACK_DAMAGE: number[][] = []
 let ENTITY_SPEED_INDEX: number[][] = []
 let ENTITY_HEALTH_INDEX: number[][] = []
 let STATE_IDLERUN = ""
+let STATE_CASTING = ""
 let STATE_AIMING = ""
-let STATE_BLOCKING = ""
+let STATE_ATTACK = ""
 let STATE_JUMP = ""
 let INPUT_LOCKED = ""
 let Slot: Sprite = null
@@ -1827,13 +1881,14 @@ let GAME_PLAYER_XP = 0
 let GAME_PLAYER_LEVEL = 0
 let PetrifiedWither_Star: Sprite = null
 let PetrifiedWither_Arms: Sprite = null
+let IFrameDuration = 0
 let Character: Sprite = null
+let STATE_BLOCKING = ""
 let STATE_ULTIMATE = ""
+let INPUT_GAME = ""
 let MENU_SAVELOAD: Sprite = null
 let SB_ENTITY: StatusBarSprite = null
 let Entity: Sprite = null
-let STATE_CASTING = ""
-let INPUT_GAME = ""
 let INPUT_MODE = ""
 let LastFloorBackground: Sprite = null
 let LastFloorForeground: Sprite = null
@@ -1843,8 +1898,6 @@ let EXPLOSION_FIREBALL = ""
 let EXPLOSION_MAGIC = ""
 let ExplosionEffect: Sprite = null
 let EffectSystem: Sprite = null
-let IFrameDuration = 0
-let STATE_ATTACK = ""
 let bMenuOpen = false
 let GAME_INTRO_RUNNING = false
 let GAME_RUNNING = false
@@ -1858,6 +1911,5 @@ StartingConstruction()
 DATA_CHECK()
 ShowSplashScreen()
 pauseUntil(() => controller.A.isPressed() && !(bMenuOpen))
-Cutscene(0)
 StartGame()
 Play_Level(1)
