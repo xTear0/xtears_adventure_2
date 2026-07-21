@@ -187,7 +187,7 @@ function AddEntity (ID: number, Location: tiles.Location) {
     sprites.setDataNumber(Entity, "AttackDamage", GetEntity_Attack_Damage(ID))
     Entity.setVelocity(GetEntity_Speed_Index(ID), 0)
     Entity.setStayInScreen(false)
-    Entity.setFlag(SpriteFlag.GhostThroughWalls, true)
+    Entity.setFlag(SpriteFlag.GhostThroughWalls, false)
     Entity.setFlag(SpriteFlag.DestroyOnWall, false)
     Entity.setFlag(SpriteFlag.AutoDestroy, false)
     SB_ENTITY = statusbars.create(10, 3, StatusBarKind.Health)
@@ -204,18 +204,21 @@ function AddEntity (ID: number, Location: tiles.Location) {
 function AwaitLevelCompleted () {
     timer.background(function () {
         pauseUntil(() => !(ExistsLivingEnemy()))
-        timer.after(500, function () {
+        timer.after(2500, function () {
             LEVEL_RECAP = sprites.createProjectileFromSide(assets.image`StatBlockSprite4`, 0, 0)
+            LEVEL_RECAP_TEXT = textsprite.create("", 0, 1)
             LEVEL_RECAP.z = 20000
-            LEVEL_RECAP.ay = 400
+            LEVEL_RECAP.x = scene.screenWidth() / 2
+            LEVEL_RECAP.y = 0
+            LEVEL_RECAP.ay = 350
             LEVEL_RECAP.setKind(SpriteKind.SplashScreen)
             LEVEL_RECAP.setFlag(SpriteFlag.StayInScreen, false)
             LEVEL_RECAP.setFlag(SpriteFlag.GhostThroughWalls, true)
             LEVEL_RECAP.setFlag(SpriteFlag.AutoDestroy, false)
-            pauseUntil(() => LEVEL_RECAP.y <= 60)
+            pauseUntil(() => LEVEL_RECAP.y >= 60)
             LEVEL_RECAP.ay = 0
             LEVEL_RECAP.vy = 0
-            scene.cameraShake(4, 100)
+            scene.cameraShake(8, 250)
         })
     })
 }
@@ -361,7 +364,7 @@ function DoDamage (Victim: Sprite, Instigator: Sprite) {
             if (Victim != Character) {
                 animation.stopAnimation(animation.AnimationTypes.ImageAnimation, Victim)
                 Victim.setImage(GetEntity_Frame_Hurt(sprites.readDataNumber(Victim, "ID")))
-                Victim.vx += 200 * (16 / Victim.height)
+                Victim.vx += 100 * (16 / Victim.height)
                 timer.after(IFrameDuration, function () {
                     Victim.vx = GetEntity_Speed_Index(sprites.readDataNumber(Victim, "ID"))
                     animation.runImageAnimation(
@@ -487,6 +490,7 @@ function DATA_SAVE (SaveFile: number) {
     blockSettings.writeNumberArray("save_" + SaveFile, [GAME_PLAYER_LEVEL, GAME_PLAYER_XP, 0])
 }
 function Play_Level (level: number) {
+    GAME_SCORE_EARNED_LEVEL = 0
     LEVEL_BANNER = sprites.createProjectileFromSide(assets.image`level_banner_1`, -50, 0)
     tiles.placeOnTile(LEVEL_BANNER, tiles.getTileLocation(14, 4))
     LEVEL_BANNER.setKind(SpriteKind.SplashScreen)
@@ -519,10 +523,7 @@ function Play_Level (level: number) {
                 AddEntity(13, tiles.getTileLocation(10, 6))
                 timer.after(1000, function () {
                     AddEntity(14, tiles.getTileLocation(10, 6))
-                    timer.after(1000, function () {
-                        AddEntity(15, tiles.getTileLocation(10, 6))
-                        AwaitLevelCompleted()
-                    })
+                    AwaitLevelCompleted()
                 })
             })
         })
@@ -1280,6 +1281,7 @@ function TryManageKilledEntity (DeceasedEntity: Sprite) {
             if (sprites.readDataBoolean(DeceasedEntity, "IsAlive")) {
                 sprites.setDataBoolean(DeceasedEntity, "IsAlive", false)
                 info.changeScoreBy(10 * sprites.readDataNumber(DeceasedEntity, "MaxHealth"))
+                GAME_SCORE_EARNED_LEVEL += 1
                 GAME_PLAYER_XP += 10 * sprites.readDataNumber(DeceasedEntity, "MaxHealth")
                 sprites.destroy(DeceasedEntity, effects.disintegrate, 100)
                 XPLevelUpManager()
@@ -1375,6 +1377,10 @@ function AimingBow (_true: boolean) {
         BOW_CHARGE = 0
     }
 }
+scene.onHitWall(SpriteKind.Enemy, function (sprite, location) {
+    sprite.setFlag(SpriteFlag.GhostThroughWalls, true)
+    sprite.lifespan = 500
+})
 sprites.onOverlap(SpriteKind.Enemy, SpriteKind.Explosion, function (sprite, otherSprite) {
     DoDamage(sprite, otherSprite)
 })
@@ -1983,6 +1989,7 @@ let SB_Player_XP: StatusBarSprite = null
 let SB_Player_Mana: StatusBarSprite = null
 let SB_Player_HP: StatusBarSprite = null
 let LEVEL_BANNER: Sprite = null
+let GAME_SCORE_EARNED_LEVEL = 0
 let GAME_PLAYER_XP = 0
 let GAME_PLAYER_LEVEL = 0
 let PetrifiedWither_Star: Sprite = null
@@ -1992,6 +1999,7 @@ let Character: Sprite = null
 let STATE_ULTIMATE = ""
 let INPUT_GAME = ""
 let MENU_SAVELOAD: Sprite = null
+let LEVEL_RECAP_TEXT: TextSprite = null
 let LEVEL_RECAP: Sprite = null
 let SB_ENTITY: StatusBarSprite = null
 let Entity: Sprite = null
