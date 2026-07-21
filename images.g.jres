@@ -319,11 +319,6 @@
         "mimeType": "image/x-mkcd-f4",
         "displayName": "constructArrays16"
     },
-    "image187": {
-        "data": "hwQaABAAAAAAAAAgAAAAACAAAAAAAAAAAAAAACIAAgAAAAAgMwIAAAAiIjIiAvAPAPI/L/M/IgIAMjMjMyIz8gAyMyMiIiPyAPI/LzMyIgAAIiIyAgAAAAAAACACAAAAAAAAMAIAAAAAAAAgAgAAAAAAAPAPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        "mimeType": "image/x-mkcd-f4",
-        "displayName": "playerAnimations31"
-    },
     "image188": {
         "data": "hwQUABAAAAAAAAAAcAAAAAAAAACAAAAAAAAAAJAAAAAAAAAAcAAgAiAiIiNyACICIP/zMiI/IwAgMzMyIz8DACAzMyKSMgIAIP/zI3IjIgAgIiIyIw/yDwAAAAAjD/APAAAAAJAAAAAAAAAAgAAAAAAAAACAAAAAAAAAAHgIAAAAAAAQFxcAAAAAABAQEAAAAAAAEBAQAAAAAAAQEBAAAAAAAAAQAAAA",
         "mimeType": "image/x-mkcd-f4",
@@ -1148,6 +1143,26 @@
         "data": "hwRkABgAAADMzMzMzMzMzMzMzMycmZmZmZmZmZmZmcmcycnJycnJyampqcmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMxMxKqqmsmcyRyZmRwZxKqqqsmczJyZSZSZzBGqmsmcyZz5H5+ZEZmqqsmczJyZEZGZmaqqmsmcyZyZEZGZmaGqqsmczJz5H5+ZmRmqmsmcyZyZSRTJzJmqqsmczMzMzJmEyKqqmsmcyczMzEmPzKqqqsmczMzMzMx+yKqqmsmcyczMzIiRh6qqqsmczMzMzMgYeaiqmsmcyczMzMyMkYeqqsmczMzMzMzMGHmomsmcyczMzJzMjBGoqsmczMzMzMzMzIiomsmcyczMzMzMzKqqqsmczMzMnJmczKqpmsmcyczMnJyczKqqqsmczMzMnJyZzKqqmsmcyczMzMzMzKqqqsmczMzMzJmZzKqqmsmcyczMzMmczKqqqsmczMzMzMzMzKqqmsmcyczMzJmZzKqqqsmczMzMzMmczKqqmsmcyczMzJmZzKqqqsmczMzMzMzMzKqqmsmcyczMzJmZzKqqqsmczMzMzMnMzKqqmsmcyczMzMzMzKqqqsmczMzMzJmZzKqqmsmcyczMzJmczKqqqsmczMzMzMzMzKqqmsmcyczMzMnJzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzKqqmsmcyczMzMzMzKqqqsmczMzMzMzMzGavmsmcycz2b//MzGamqsmczMxm9m9mZmammsmcycz2b/9mZqaqqsmczMxmZmZmZmavmsmcycxmZmbMzGamqsmczMzMzMzMzGammsmcyczMzGzGzKqqqsmczMzMzHzHzKqqmsmcyczMzHzHzKqqqsmczMxuaHbHzIqsmsmcycxuZmZ2h4isqsmczMxuZnh3h4iqmsmcycxuaHZ3h6iqqsmczMzuZnbHjKiqmsmcyczMzHzHzKyqqsmcnJycnJycnJqamsmcmZmZmZmZmZmZmcnMzMzMzMzMzMzMzMw=",
         "mimeType": "image/x-mkcd-f4",
         "displayName": "StatBlockSprite4"
+    },
+    "image101": {
+        "data": "hwQaABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACDyAAIAAAAgM/IAAAAiIjIiACDyAPI/LzMyIvIAMjMjMyIzAAAyMyMiIjPyAPI/LzMyIvIAIiIiAswAAAAAADDyDAAAAAAAAO/KAAAAAADAHKoMAAAAAMDAocoAAAAAAAAcqgwAAAAAAMChygAAAAAAABzBAAAAAAIAwMwAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "mimeType": "image/x-mkcd-f4",
+        "displayName": "character_attack_hurt"
+    },
+    "image187": {
+        "data": "hwQaABAAAAAAAAAgAAAAACAAAAAAAAAAAAAAACIAAgAAAAAgMwIAAAAiIjIiAvAPAPI/L/M/IgIAMjMjMyIz8gAyMyMiIiPyAPI/LzMyIgAAIiIyAgAAAAAAACACAAAAAAAAMAIAAAAAAAAgAgAAAAAAAPAPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "mimeType": "image/x-mkcd-f4",
+        "displayName": "playerAnimations31"
+    },
+    "image102": {
+        "data": "hwQQAA8AAAAAAAAAAAACAAAAAAAAAAAAAAACACMPAAAAAAAyIg8gAiAiIiMCACICIP/zMiMzIwAgMzMyIzIDACAzMyIiMgIAIP/zMiMjIgAgIiIyAADyDwAAACMAAPAPMCMMIgACAAAwIMz/ysrMACAiDP8AAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+        "mimeType": "image/x-mkcd-f4",
+        "displayName": "character_casting_hurt"
+    },
+    "image103": {
+        "data": "hwQQABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAiIiPiAAAAIP/zMiIvIgAgMzMyIz/yDyAzMyLiMvMPIP/zI+IjAwAgIiIyIw8AAAAAAAAjDwAAAAAAAODADAAAAAAAzKwMAAAAAACsqgwAAAAAAMwcDAAAAAAAAMAMAA==",
+        "mimeType": "image/x-mkcd-f4",
+        "displayName": "character_ultimate_hurt"
     },
     "animation1": {
         "namespace": "myImages",

@@ -76,6 +76,7 @@ function AddExplosion (ExplosionType: string, Size: number, Damage: number, x: n
         })
     } else if (ExplosionType == EXPLOSION_FIREBALL) {
         scene.cameraShake(2, 100)
+        music.play(music.createSoundEffect(WaveShape.Noise, 1215, 1, 255, 107, 300, SoundExpressionEffect.Vibrato, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
         animation.runImageAnimation(
         ExplosionEffect,
         assets.animation`ExplosionSpriteAnim3`,
@@ -83,6 +84,8 @@ function AddExplosion (ExplosionType: string, Size: number, Damage: number, x: n
         false
         )
     } else if (ExplosionType == EXPLOSION_TNT) {
+        scene.cameraShake(5, 300)
+        music.play(music.createSoundEffect(WaveShape.Noise, 1215, 1, 255, 107, 300, SoundExpressionEffect.Vibrato, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
         animation.runImageAnimation(
         ExplosionEffect,
         assets.animation`ExplosionSpriteAnim3`,
@@ -369,15 +372,11 @@ function DoDamage (Victim: Sprite, Instigator: Sprite) {
                     )
                 })
             } else {
+                AddState(STATE_HIT_REACTING, true, [], false)
+                PlayCheckedTimedStateAnimation(IFrameDuration, false)
                 scene.cameraShake(5, 200)
-                Victim.setImage(assets.image`playerAnimations30`)
                 timer.after(IFrameDuration, function () {
-                    animation.runImageAnimation(
-                    Victim,
-                    assets.animation`player_idlerun`,
-                    100,
-                    true
-                    )
+                    RemoveState(STATE_HIT_REACTING)
                 })
             }
             TryManageKilledEntity(Victim)
@@ -679,8 +678,8 @@ function GetEntity_Frame_Hurt (ID: number) {
     return ENTITY_HURT_FRAME[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
 }
 function ExistsLivingEnemy () {
-    for (let value of sprites.allOfKind(SpriteKind.Enemy)) {
-        if (sprites.readDataBoolean(value, "IsAlive")) {
+    for (let value5 of sprites.allOfKind(SpriteKind.Enemy)) {
+        if (sprites.readDataBoolean(value5, "IsAlive")) {
             return true
         }
     }
@@ -757,7 +756,8 @@ function StartingConstruction () {
     STATE_CASTING = "Casting"
     STATE_ULTIMATE = "Ultimate"
     STATE_IDLERUN = "IdleRun"
-    IFrameDuration = 50
+    STATE_HIT_REACTING = "HitReacting"
+    IFrameDuration = 100
     GAME_PLAYER_XP_NEEDED = 600
     ENTITY_ANIM_IDLERUN = [[
     assets.animation`zombie_idle`,
@@ -1130,7 +1130,7 @@ function AddVectorEffect (Type: string, Instigator: Sprite, Target: Sprite, Accu
 	
 }
 function AddState (State: string, SelfMutex: boolean, MutexStates: string[], AddFirst: boolean) {
-    if (HasState(STATE_IDLERUN)) {
+    if (HasState(STATE_IDLERUN) && !(State == STATE_HIT_REACTING)) {
         CharacterStates.removeAt(CharacterStates.indexOf(STATE_IDLERUN))
     }
     for (let index222 = 0; index222 <= CharacterStates.length - 1; index222++) {
@@ -1148,61 +1148,123 @@ sprites.onOverlap(SpriteKind.Enemy, SpriteKind.Enemy, function (sprite, otherSpr
     otherSprite.x += 1
 })
 function PlayCheckedTimedStateAnimation (AnimationDuration: number, RemoveState2: boolean) {
+    animation.stopAnimation(animation.AnimationTypes.ImageAnimation, Character)
     if (CharacterStates[0] == STATE_ATTACK) {
-        animation.runImageAnimation(
-        Character,
-        assets.animation`player_attack`,
-        50,
-        false
-        )
+        if (HasState(STATE_HIT_REACTING)) {
+            Character.setImage(assets.image`character_attack_hurt`)
+        } else {
+            animation.runImageAnimation(
+            Character,
+            assets.animation`player_attack`,
+            50,
+            false
+            )
+        }
     }
     if (CharacterStates[0] == STATE_AIMING) {
-        animation.runImageAnimation(
-        Character,
-        assets.animation`player_aiming`,
-        100,
-        true
-        )
+        if (HasState(STATE_HIT_REACTING)) {
+            Character.setImage(assets.image`playerAnimations31`)
+        } else {
+            animation.runImageAnimation(
+            Character,
+            assets.animation`player_aiming`,
+            100,
+            true
+            )
+        }
     }
     if (CharacterStates[0] == STATE_BLOCKING) {
-        animation.runImageAnimation(
-        Character,
-        assets.animation`player_blocking`,
-        100,
-        true
-        )
+        if (HasState(STATE_HIT_REACTING)) {
+            Character.setImage(assets.image`playerAnimations31`)
+        } else {
+            animation.runImageAnimation(
+            Character,
+            assets.animation`player_blocking`,
+            100,
+            true
+            )
+        }
     }
     if (CharacterStates[0] == STATE_IDLERUN) {
-        animation.runImageAnimation(
-        Character,
-        assets.animation`player_idlerun`,
-        175,
-        true
-        )
+        if (HasState(STATE_HIT_REACTING)) {
+            Character.setImage(assets.image`playerAnimations30`)
+        } else {
+            animation.runImageAnimation(
+            Character,
+            assets.animation`player_idlerun`,
+            100,
+            true
+            )
+        }
     }
     if (CharacterStates[0] == STATE_JUMP) {
-        animation.runImageAnimation(
-        Character,
-        assets.animation`player_jump`,
-        100,
-        false
-        )
+        if (HasState(STATE_HIT_REACTING)) {
+            Character.setImage(assets.image`playerAnimations30`)
+        } else {
+            animation.runImageAnimation(
+            Character,
+            assets.animation`player_jump`,
+            100,
+            false
+            )
+        }
     }
     if (CharacterStates[0] == STATE_CASTING) {
-        animation.runImageAnimation(
-        Character,
-        assets.animation`player_casting`,
-        100,
-        true
-        )
+        if (HasState(STATE_HIT_REACTING)) {
+            Character.setImage(img`
+                . . . . . . . . . . . . . . . . 
+                . . . . 2 2 2 2 2 2 . 3 3 2 . . 
+                . . . . 2 f 3 3 f 2 . 3 . 2 . . 
+                . . . . 2 f 3 3 f 2 . 2 2 2 . . 
+                . . 2 . 2 3 3 3 3 2 . c c c . . 
+                . . . . 2 f 3 3 f 2 . . c . . . 
+                . . . 2 3 2 2 2 2 2 3 2 f f . . 
+                . . . 3 2 3 3 2 3 3 2 2 f f . . 
+                . . 3 2 2 3 3 2 3 . . . a . . . 
+                . . 2 2 . 2 2 2 2 . . . c . . . 
+                . . f f . 3 2 2 3 . . 2 a . . . 
+                . . . . . 3 3 3 2 . . . c . . . 
+                2 . . . 2 3 3 2 2 2 . . c . . . 
+                . . . 2 2 2 . . 2 f f . c . . . 
+                . . . 2 2 . . . . f f . . . . . 
+                `)
+        } else {
+            animation.runImageAnimation(
+            Character,
+            assets.animation`player_casting`,
+            100,
+            true
+            )
+        }
     }
     if (CharacterStates[0] == STATE_ULTIMATE) {
-        animation.runImageAnimation(
-        Character,
-        assets.animation`player_ultimate`,
-        100,
-        true
-        )
+        if (HasState(STATE_HIT_REACTING)) {
+            Character.setImage(img`
+                . . . . . . . . . . . . . . . . 
+                . . . . 2 2 2 2 2 2 . . . . . . 
+                . . . . 2 f 3 3 f 2 . . . . . . 
+                . . . . 2 f 3 3 f 2 . . . . . . 
+                . . . . 2 3 3 3 3 2 . . . . . . 
+                . . . . 2 f 3 3 f 2 . . . . . . 
+                . . . . 3 2 2 2 3 2 . . . . . . 
+                . . . . 2 3 3 2 2 3 . . . . . . 
+                . . . . 2 2 3 2 2 3 3 . c c c . 
+                . . . . e 2 2 e e 2 2 e c a c . 
+                . . . . . f f 2 3 f f . c a c . 
+                . . . . . 2 3 3 2 . . c a a 1 c 
+                . . . . . 2 2 3 3 . . c c c c c 
+                . . . . . 2 f f . . . . . . . . 
+                . . . . . . f f . . . . . . . . 
+                . . . . . . . . . . . . . . . . 
+                `)
+        } else {
+            animation.runImageAnimation(
+            Character,
+            assets.animation`player_ultimate`,
+            100,
+            true
+            )
+        }
     }
     if (RemoveState2) {
         timer.after(AnimationDuration, function () {
@@ -1213,7 +1275,7 @@ function PlayCheckedTimedStateAnimation (AnimationDuration: number, RemoveState2
 function TryManageKilledEntity (DeceasedEntity: Sprite) {
     if (sprites.readDataNumber(DeceasedEntity, "Health") <= 0) {
         if (DeceasedEntity == Character) {
-            game.gameOver(false)
+        	
         } else {
             if (sprites.readDataBoolean(DeceasedEntity, "IsAlive")) {
                 sprites.setDataBoolean(DeceasedEntity, "IsAlive", false)
@@ -1233,7 +1295,7 @@ function RemoveState (State: string) {
     if (j >= 0) {
         CharacterStates.removeAt(j)
     }
-    if (CharacterStates.length == 0) {
+    if (CharacterStates.length == 0 || !(HasState(STATE_IDLERUN)) && HasState(STATE_HIT_REACTING)) {
         AddState(STATE_IDLERUN, true, [], false)
     }
     PlayCheckedTimedStateAnimation(0, false)
@@ -1925,6 +1987,7 @@ let GAME_PLAYER_XP = 0
 let GAME_PLAYER_LEVEL = 0
 let PetrifiedWither_Star: Sprite = null
 let PetrifiedWither_Arms: Sprite = null
+let STATE_HIT_REACTING = ""
 let Character: Sprite = null
 let STATE_ULTIMATE = ""
 let INPUT_GAME = ""
@@ -1958,4 +2021,4 @@ DATA_CHECK()
 ShowSplashScreen()
 pauseUntil(() => controller.A.isPressed() && !(bMenuOpen))
 StartGame()
-Play_Level(5)
+Play_Level(1)
