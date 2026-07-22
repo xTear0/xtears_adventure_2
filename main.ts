@@ -206,19 +206,111 @@ function AwaitLevelCompleted () {
         pauseUntil(() => !(ExistsLivingEnemy()))
         timer.after(2500, function () {
             LEVEL_RECAP = sprites.createProjectileFromSide(assets.image`StatBlockSprite4`, 0, 0)
-            LEVEL_RECAP_TEXT = textsprite.create("", 0, 1)
+            LEVEL_RECAP_TEXT = textsprite.create(convertToText(GAME_SCORE_EARNED_LEVEL), 0, 1)
+            LEVEL_RECAP_TEXT.setMaxFontHeight(6)
+            LEVEL_RECAP_TEXT.z = 20001
             LEVEL_RECAP.z = 20000
             LEVEL_RECAP.x = scene.screenWidth() / 2
+            LEVEL_RECAP_TEXT.x = scene.screenWidth() / 2 + 5
             LEVEL_RECAP.y = 0
+            LEVEL_RECAP_TEXT.y = -1
             LEVEL_RECAP.ay = 350
+            LEVEL_RECAP_TEXT.ay = 350
             LEVEL_RECAP.setKind(SpriteKind.SplashScreen)
+            LEVEL_RECAP_TEXT.setKind(SpriteKind.SplashScreen)
             LEVEL_RECAP.setFlag(SpriteFlag.StayInScreen, false)
+            LEVEL_RECAP_TEXT.setFlag(SpriteFlag.StayInScreen, false)
             LEVEL_RECAP.setFlag(SpriteFlag.GhostThroughWalls, true)
+            LEVEL_RECAP_TEXT.setFlag(SpriteFlag.GhostThroughWalls, true)
             LEVEL_RECAP.setFlag(SpriteFlag.AutoDestroy, false)
+            LEVEL_RECAP_TEXT.setFlag(SpriteFlag.AutoDestroy, false)
             pauseUntil(() => LEVEL_RECAP.y >= 60)
+            music.play(music.createSoundEffect(WaveShape.Noise, 741, 916, 255, 0, 600, SoundExpressionEffect.Vibrato, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
             LEVEL_RECAP.ay = 0
+            LEVEL_RECAP_TEXT.ay = 0
             LEVEL_RECAP.vy = 0
+            LEVEL_RECAP_TEXT.vy = 0
             scene.cameraShake(8, 250)
+            timer.after(2000, function () {
+                sprites.destroy(LEVEL_RECAP, effects.disintegrate, 500)
+                sprites.destroy(LEVEL_RECAP_TEXT, effects.disintegrate, 500)
+                timer.after(500, function () {
+                    LEVEL_RECAP = sprites.createProjectileFromSide(assets.image`StatBlockSprite2`, 0, 0)
+                    LEVEL_RECAP_TEXT = textsprite.create(convertToText(GAME_PLAYER_XP), 0, 5)
+                    LEVEL_RECAP_TEXT.setMaxFontHeight(6)
+                    LEVEL_RECAP_TEXT.z = 20001
+                    LEVEL_RECAP.z = 20000
+                    LEVEL_RECAP.x = scene.screenWidth() / 2
+                    LEVEL_RECAP_TEXT.x = scene.screenWidth() / 2 + 5
+                    LEVEL_RECAP.y = 0
+                    LEVEL_RECAP_TEXT.y = -2
+                    LEVEL_RECAP.ay = 350
+                    LEVEL_RECAP_TEXT.ay = 350
+                    LEVEL_RECAP.setKind(SpriteKind.SplashScreen)
+                    LEVEL_RECAP_TEXT.setKind(SpriteKind.SplashScreen)
+                    LEVEL_RECAP.setFlag(SpriteFlag.StayInScreen, false)
+                    LEVEL_RECAP_TEXT.setFlag(SpriteFlag.StayInScreen, false)
+                    LEVEL_RECAP.setFlag(SpriteFlag.GhostThroughWalls, true)
+                    LEVEL_RECAP_TEXT.setFlag(SpriteFlag.GhostThroughWalls, true)
+                    LEVEL_RECAP.setFlag(SpriteFlag.AutoDestroy, false)
+                    LEVEL_RECAP_TEXT.setFlag(SpriteFlag.AutoDestroy, false)
+                    timer.background(function () {
+                        pauseUntil(() => LEVEL_RECAP.y >= 60)
+                        music.play(music.melodyPlayable(music.bigCrash), music.PlaybackMode.InBackground)
+                        LEVEL_RECAP.ay = 0
+                        LEVEL_RECAP_TEXT.ay = 0
+                        LEVEL_RECAP.vy = 0
+                        LEVEL_RECAP_TEXT.vy = 0
+                        scene.cameraShake(8, 250)
+                    })
+                    timer.after(2000, function () {
+                        sprites.destroy(LEVEL_RECAP, effects.disintegrate, 500)
+                        sprites.destroy(LEVEL_RECAP_TEXT, effects.disintegrate, 500)
+                        if (GAME_PLAYER_LEVELUPS > 0) {
+                            timer.after(500, function () {
+                                LEVEL_RECAP = sprites.createProjectileFromSide(assets.image`banner_levelups`, 0, 0)
+                                LEVEL_RECAP.scale = 1.45
+                                LEVEL_RECAP_TEXT = textsprite.create("YOU REACHED LVL." + convertToText(GAME_PLAYER_LEVEL), 0, 5)
+                                LEVEL_RECAP_TEXT.setMaxFontHeight(4)
+                                timer.after(2500, function () {
+                                    if (GAME_PLAYER_LEVELUPS > 0) {
+                                        LEVEL_RECAP_TEXT.setText("(" + GAME_PLAYER_LEVELUPS + " Skill Points).")
+                                    } else {
+                                        LEVEL_RECAP_TEXT.setText("(" + GAME_PLAYER_LEVELUPS + " Skill Point).")
+                                    }
+                                })
+                                LEVEL_RECAP_TEXT.z = 20001
+                                LEVEL_RECAP.z = 20000
+                                LEVEL_RECAP.x = scene.screenWidth() / 2
+                                LEVEL_RECAP_TEXT.x = scene.screenWidth() / 2
+                                LEVEL_RECAP.y = 0
+                                LEVEL_RECAP_TEXT.y = -2
+                                LEVEL_RECAP.ay = 350
+                                LEVEL_RECAP_TEXT.ay = 350
+                                LEVEL_RECAP.setKind(SpriteKind.SplashScreen)
+                                LEVEL_RECAP_TEXT.setKind(SpriteKind.SplashScreen)
+                                LEVEL_RECAP.setFlag(SpriteFlag.StayInScreen, false)
+                                LEVEL_RECAP_TEXT.setFlag(SpriteFlag.StayInScreen, false)
+                                LEVEL_RECAP.setFlag(SpriteFlag.GhostThroughWalls, true)
+                                LEVEL_RECAP_TEXT.setFlag(SpriteFlag.GhostThroughWalls, true)
+                                LEVEL_RECAP.setFlag(SpriteFlag.AutoDestroy, false)
+                                LEVEL_RECAP_TEXT.setFlag(SpriteFlag.AutoDestroy, false)
+                                pauseUntil(() => LEVEL_RECAP.y >= 60)
+                                music.play(music.melodyPlayable(music.bigCrash), music.PlaybackMode.InBackground)
+                                LEVEL_RECAP.ay = 0
+                                LEVEL_RECAP_TEXT.ay = 0
+                                LEVEL_RECAP.vy = 0
+                                LEVEL_RECAP_TEXT.vy = 0
+                                scene.cameraShake(8, 250)
+                                timer.after(3500, function () {
+                                    sprites.destroy(LEVEL_RECAP, effects.disintegrate, 500)
+                                    sprites.destroy(LEVEL_RECAP_TEXT, effects.disintegrate, 500)
+                                })
+                            })
+                        }
+                    })
+                })
+            })
         })
     })
 }
@@ -1116,7 +1208,7 @@ function XPLevelUpManager () {
     if (GAME_PLAYER_XP > GAME_PLAYER_XP_NEEDED) {
         GAME_PLAYER_XP += GAME_PLAYER_XP_NEEDED * -1
         GAME_PLAYER_LEVEL += 1
-        LevelUps += 1
+        GAME_PLAYER_LEVELUPS += 1
         SetLevelText()
         music.play(music.createSong(assets.song`SFX_LevelUP`), music.PlaybackMode.InBackground)
         effects.confetti.startScreenEffect(1000)
@@ -1147,6 +1239,10 @@ function AddState (State: string, SelfMutex: boolean, MutexStates: string[], Add
 }
 sprites.onOverlap(SpriteKind.Enemy, SpriteKind.Enemy, function (sprite, otherSprite) {
     otherSprite.x += 1
+})
+scene.onHitWall(SpriteKind.Enemy, function (sprite, location) {
+    sprite.setFlag(SpriteFlag.GhostThroughWalls, true)
+    sprite.lifespan = 500
 })
 function PlayCheckedTimedStateAnimation (AnimationDuration: number, RemoveState2: boolean) {
     animation.stopAnimation(animation.AnimationTypes.ImageAnimation, Character)
@@ -1281,7 +1377,7 @@ function TryManageKilledEntity (DeceasedEntity: Sprite) {
             if (sprites.readDataBoolean(DeceasedEntity, "IsAlive")) {
                 sprites.setDataBoolean(DeceasedEntity, "IsAlive", false)
                 info.changeScoreBy(10 * sprites.readDataNumber(DeceasedEntity, "MaxHealth"))
-                GAME_SCORE_EARNED_LEVEL += 1
+                GAME_SCORE_EARNED_LEVEL += 10 * sprites.readDataNumber(DeceasedEntity, "MaxHealth")
                 GAME_PLAYER_XP += 10 * sprites.readDataNumber(DeceasedEntity, "MaxHealth")
                 sprites.destroy(DeceasedEntity, effects.disintegrate, 100)
                 XPLevelUpManager()
@@ -1377,10 +1473,6 @@ function AimingBow (_true: boolean) {
         BOW_CHARGE = 0
     }
 }
-scene.onHitWall(SpriteKind.Enemy, function (sprite, location) {
-    sprite.setFlag(SpriteFlag.GhostThroughWalls, true)
-    sprite.lifespan = 500
-})
 sprites.onOverlap(SpriteKind.Enemy, SpriteKind.Explosion, function (sprite, otherSprite) {
     DoDamage(sprite, otherSprite)
 })
@@ -1961,7 +2053,6 @@ let RANGED_WEAPON_CONTROL = 0
 let BOW_CHARGE = 0
 let angle = 0
 let j = 0
-let LevelUps = 0
 let CharacterStates: string[] = []
 let myMenu: Sprite = null
 let ProjectileDY = 0
@@ -1989,9 +2080,6 @@ let SB_Player_XP: StatusBarSprite = null
 let SB_Player_Mana: StatusBarSprite = null
 let SB_Player_HP: StatusBarSprite = null
 let LEVEL_BANNER: Sprite = null
-let GAME_SCORE_EARNED_LEVEL = 0
-let GAME_PLAYER_XP = 0
-let GAME_PLAYER_LEVEL = 0
 let PetrifiedWither_Star: Sprite = null
 let PetrifiedWither_Arms: Sprite = null
 let STATE_HIT_REACTING = ""
@@ -1999,6 +2087,10 @@ let Character: Sprite = null
 let STATE_ULTIMATE = ""
 let INPUT_GAME = ""
 let MENU_SAVELOAD: Sprite = null
+let GAME_PLAYER_LEVEL = 0
+let GAME_PLAYER_LEVELUPS = 0
+let GAME_PLAYER_XP = 0
+let GAME_SCORE_EARNED_LEVEL = 0
 let LEVEL_RECAP_TEXT: TextSprite = null
 let LEVEL_RECAP: Sprite = null
 let SB_ENTITY: StatusBarSprite = null
