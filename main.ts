@@ -176,6 +176,11 @@ function ScrollingBackground (Dimension: number, Scrolling: boolean) {
 function SetInputMode (Mode: string) {
     INPUT_MODE = Mode
 }
+function CreateReplayOptions () {
+    for (let index = 0; index <= GAME_PLAYER_HIGHEST_LEVEL_COMPLETED - 1; index++) {
+        miniMenu.insertMenuItem(MENU_SELECT_LEVEL, miniMenu.createMenuItem("REPLAY LVL " + (index + 1), GET_LVL_ICON(index + 1)), miniMenu.getMenuItems(MENU_SELECT_LEVEL).length)
+    }
+}
 function AddEntity (ID: number, Location: tiles.Location) {
     Entity = sprites.createProjectileFromSide(GetEntity_Frame_Hurt(ID), 0, 0)
     Entity.setKind(SpriteKind.Enemy)
@@ -192,19 +197,24 @@ function AddEntity (ID: number, Location: tiles.Location) {
     Entity.setFlag(SpriteFlag.AutoDestroy, false)
     SB_ENTITY = statusbars.create(10, 3, StatusBarKind.Health)
     SB_ENTITY.attachToSprite(Entity, 0, 1)
-    tiles.placeOnTile(Entity, tiles.getTileLocation(Location.column, Location.row))
-    Entity.bottom = 112
-    animation.runImageAnimation(
-    Entity,
-    GetEntity_Anim_IdleRun(ID),
-    100,
-    true
-    )
+    if (ID == 222) {
+        CreatePetrifiedWither(Entity)
+    } else {
+        tiles.placeOnTile(Entity, tiles.getTileLocation(Location.column, Location.row))
+        Entity.bottom = 112
+        animation.runImageAnimation(
+        Entity,
+        GetEntity_Anim_IdleRun(ID),
+        100,
+        true
+        )
+    }
 }
-function AwaitLevelCompleted () {
+function AwaitLevelCompleted (Level: number) {
     timer.background(function () {
         pauseUntil(() => !(ExistsLivingEnemy()))
         timer.after(2500, function () {
+            GAME_PLAYER_HIGHEST_LEVEL_COMPLETED = Level
             LEVEL_RECAP = sprites.createProjectileFromSide(assets.image`StatBlockSprite4`, 0, 0)
             LEVEL_RECAP_TEXT = textsprite.create(convertToText(GAME_SCORE_EARNED_LEVEL), 0, 1)
             LEVEL_RECAP_TEXT.setMaxFontHeight(6)
@@ -225,7 +235,7 @@ function AwaitLevelCompleted () {
             LEVEL_RECAP.setFlag(SpriteFlag.AutoDestroy, false)
             LEVEL_RECAP_TEXT.setFlag(SpriteFlag.AutoDestroy, false)
             pauseUntil(() => LEVEL_RECAP.y >= 60)
-            music.play(music.createSoundEffect(WaveShape.Noise, 741, 916, 255, 0, 600, SoundExpressionEffect.Vibrato, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
+            music.play(music.melodyPlayable(music.bigCrash), music.PlaybackMode.InBackground)
             LEVEL_RECAP.ay = 0
             LEVEL_RECAP_TEXT.ay = 0
             LEVEL_RECAP.vy = 0
@@ -303,10 +313,13 @@ function AwaitLevelCompleted () {
                                 LEVEL_RECAP_TEXT.vy = 0
                                 scene.cameraShake(8, 250)
                                 timer.after(3500, function () {
-                                    sprites.destroy(LEVEL_RECAP, effects.disintegrate, 500)
-                                    sprites.destroy(LEVEL_RECAP_TEXT, effects.disintegrate, 500)
+                                    sprites.destroy(LEVEL_RECAP)
+                                    sprites.destroy(LEVEL_RECAP_TEXT)
+                                    MENU_SPEND_SKILL_POINTS()
                                 })
                             })
+                        } else {
+                            MENU_SELECT_LEVELS()
                         }
                     })
                 })
@@ -427,6 +440,17 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
         MENU_SAVE_LOAD_START()
     }
 })
+function GET_LVL_ICON (Level: number) {
+    if (Level >= 15) {
+        return assets.image`icon_level_apocolyptic`
+    } else if (Level >= 13) {
+        return assets.image`icon_level_hard`
+    } else if (Level >= 10) {
+        return assets.image`icon_level_medium`
+    } else {
+        return assets.image`icon_level_easy`
+    }
+}
 function DoDamage (Victim: Sprite, Instigator: Sprite) {
     if (HasState(STATE_BLOCKING) && !(Victim == Character)) {
         while (Victim.overlapsWith(Instigator)) {
@@ -481,13 +505,13 @@ function DoDamage (Victim: Sprite, Instigator: Sprite) {
 function CreatePetrifiedWither (Surrogate: Sprite) {
     animation.runImageAnimation(
     Surrogate,
-    GetEntity_Anim_IdleRun(22),
+    GetEntity_Anim_IdleRun(222),
     200,
     true
     )
     Surrogate.setFlag(SpriteFlag.GhostThroughWalls, true)
     Surrogate.z = 5
-    Surrogate.setPosition(148, 68)
+    Surrogate.setPosition(171, 82)
     Surrogate.vx = -10
     PetrifiedWither_Arms = sprites.create(img`
         . . . . . . . . . . . . . . . . 
@@ -615,7 +639,7 @@ function Play_Level (level: number) {
                 AddEntity(13, tiles.getTileLocation(10, 6))
                 timer.after(1000, function () {
                     AddEntity(14, tiles.getTileLocation(10, 6))
-                    AwaitLevelCompleted()
+                    AwaitLevelCompleted(level)
                 })
             })
         })
@@ -655,7 +679,8 @@ function ShowSplashScreen () {
     "Can you find the duck?",
     "LEGENDARY PERFORMANCE",
     "Now with a FIRE STAFF!",
-    "WELCOME PETRIFIED WITHER"
+    "WELCOME PETRIFIED WITHER",
+    "NO RESULTS, JUST GIMMICKS"
     ]._pickRandom(), 12, randint(1, 7))
     GAME_SPLASH_TEXT.setKind(SpriteKind.SplashScreen)
     GAME_SPLASH_TEXT.x = 80
@@ -1010,7 +1035,8 @@ function StartingConstruction () {
     assets.image`mobHurt39`,
     assets.image`mobHurt42`,
     assets.image`mobHurt44`,
-    assets.image`mobHurt43`
+    assets.image`mobHurt43`,
+    assets.image`petrified_wither_hurt`
     ], [
     assets.image`enderman_hurt`,
     img`
@@ -1401,6 +1427,41 @@ function RemoveState (State: string) {
 function GetEntity_Attack_Damage (ID: number) {
     return ENTITY_ATTACK_DAMAGE[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1]
 }
+function MENU_SPEND_SKILL_POINTS () {
+    bMenuOpen = true
+    SetInputMode(INPUT_LOCKED)
+    ClearUnhealthyStates()
+    MENU_SPEND_SKILL_POINT = miniMenu.createMenuFromArray([
+    miniMenu.createMenuItem("MANAPOOL " + "(Lv." + SKILL_MANAPOOL + ")", assets.image`skill_manapool`),
+    miniMenu.createMenuItem("BLOODLUST " + "(Lv." + SKILL_BLOODLUST + ")", assets.image`skill_bloodsplitter`),
+    miniMenu.createMenuItem("RESILIENCE " + "(Lv." + SKILL_RESILIENCE + ")", assets.image`skill_resilience`),
+    miniMenu.createMenuItem("SKIP? >")
+    ])
+    miniMenu.onSelectionChanged(MENU_SPEND_SKILL_POINT, function (selection, selectedIndex) {
+        music.play(music.createSoundEffect(WaveShape.Noise, 3900, 3500, 255, 0, 10, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
+    })
+    MENU_SPEND_SKILL_POINT.z = 2000
+    miniMenu.setDimensions(MENU_SPEND_SKILL_POINT, 148, 94)
+    MENU_SPEND_SKILL_POINT.setPosition(scene.cameraProperty(CameraProperty.X), scene.cameraProperty(CameraProperty.Y))
+    miniMenu.setFrame(MENU_SPEND_SKILL_POINT, assets.image`lootReward9`)
+    miniMenu.setMenuStyleProperty(MENU_SPEND_SKILL_POINT, miniMenu.MenuStyleProperty.Padding, 0)
+    miniMenu.setStyleProperty(MENU_SPEND_SKILL_POINT, miniMenu.StyleKind.Selected, miniMenu.StyleProperty.Foreground, 6)
+    miniMenu.setStyleProperty(MENU_SPEND_SKILL_POINT, miniMenu.StyleKind.DefaultAndSelected, miniMenu.StyleProperty.Background, 8)
+    miniMenu.setStyleProperty(MENU_SPEND_SKILL_POINT, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Background, 6)
+    miniMenu.setStyleProperty(MENU_SPEND_SKILL_POINT, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Foreground, 5)
+    miniMenu.setStyleProperty(MENU_SPEND_SKILL_POINT, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Alignment, 1)
+    miniMenu.setTitle(MENU_SPEND_SKILL_POINT, "YOU HAVE " + GAME_PLAYER_LEVELUPS + " SKILL POINTS.")
+    miniMenu.onButtonPressed(MENU_SPEND_SKILL_POINT, miniMenu.Button.A, function (selection, selectedIndex) {
+        music.play(music.createSoundEffect(WaveShape.Square, 200, 600, 255, 0, 50, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
+        if (!(selectedIndex == 3)) {
+            miniMenu.close(MENU_SPEND_SKILL_POINT)
+            MENU_SPEND_SKILL_POINT_NEXT(selection, selectedIndex)
+        } else {
+            miniMenu.close(MENU_SPEND_SKILL_POINT)
+            MENU_SELECT_LEVELS()
+        }
+    })
+}
 sprites.onOverlap(SpriteKind.Projectile, SpriteKind.Player, function (sprite, otherSprite) {
     if (sprites.readDataString(sprite, "ProjectileType") == "PROJECTILE_FIREBALL") {
         if (!(sprites.readDataSprite(sprite, "Instigator") == otherSprite)) {
@@ -1409,6 +1470,68 @@ sprites.onOverlap(SpriteKind.Projectile, SpriteKind.Player, function (sprite, ot
         }
     }
 })
+function MENU_SPEND_SKILL_POINT_NEXT (Skill: string, Index: number) {
+    MENU_SELECT_OPTION = miniMenu.createMenuFromArray([miniMenu.createMenuItem(Skill, miniMenu.getMenuItem(MENU_SPEND_SKILL_POINT, Index).getIcon(), true), miniMenu.createMenuItem("ADD SKILL POINT?"), miniMenu.createMenuItem("< BACK")])
+    miniMenu.onSelectionChanged(MENU_SELECT_OPTION, function (selection, selectedIndex) {
+        music.play(music.createSoundEffect(WaveShape.Noise, 3900, 3500, 255, 255, 10, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
+    })
+    miniMenu.setTitle(MENU_SELECT_OPTION, "SPEND POINT?")
+    miniMenu.setStyleProperty(MENU_SELECT_OPTION, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Background, 9)
+    miniMenu.setStyleProperty(MENU_SELECT_OPTION, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Foreground, 15)
+    miniMenu.setStyleProperty(MENU_SELECT_OPTION, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Alignment, 1)
+    miniMenu.setStyleProperty(MENU_SELECT_OPTION, miniMenu.StyleKind.Disabled, miniMenu.StyleProperty.Background, 10)
+    miniMenu.setStyleProperty(MENU_SELECT_OPTION, miniMenu.StyleKind.Disabled, miniMenu.StyleProperty.Foreground, 9)
+    miniMenu.setStyleProperty(MENU_SELECT_OPTION, miniMenu.StyleKind.Selected, miniMenu.StyleProperty.Foreground, 6)
+    miniMenu.setStyleProperty(MENU_SELECT_OPTION, miniMenu.StyleKind.Selected, miniMenu.StyleProperty.Background, 1)
+    miniMenu.setStyleProperty(MENU_SELECT_OPTION, miniMenu.StyleKind.DefaultAndSelected, miniMenu.StyleProperty.Background, 1)
+    miniMenu.setFrame(MENU_SELECT_OPTION, assets.image`lootReward18`)
+    MENU_SELECT_OPTION.z = 3000
+    miniMenu.setDimensions(MENU_SELECT_OPTION, 148, 64)
+    MENU_SELECT_OPTION.setPosition(scene.cameraProperty(CameraProperty.X), scene.cameraProperty(CameraProperty.Y))
+    miniMenu.onButtonPressed(MENU_SELECT_OPTION, miniMenu.Button.A, function (selection, selectedIndex) {
+        music.play(music.createSoundEffect(WaveShape.Square, 200, 600, 255, 255, 50, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
+        if (selectedIndex == 1) {
+            music.play(music.createSong(hex`00dc000408010105001c000f0a006400f4010a0000040000000000000000000000000000000002180000000200010d02000400010f04000600010c060008000118`), music.PlaybackMode.InBackground)
+            if (GAME_PLAYER_LEVELUPS > 0) {
+                if (miniMenu.getMenuItem(MENU_SELECT_OPTION, 0).getIcon().equals(assets.image`skill_manapool`)) {
+                    SKILL_MANAPOOL += 1
+                    sprites.setDataNumber(Character, "MagicDamage", 12 + 2 * 1.1 ** SKILL_MANAPOOL)
+                    sprites.setDataNumber(Character, "MaxMana", 100 + 20 * 1.1 ** SKILL_MANAPOOL)
+                }
+                if (miniMenu.getMenuItem(MENU_SELECT_OPTION, 0).getIcon().equals(assets.image`skill_bloodsplitter`)) {
+                    SKILL_BLOODLUST += 1
+                    sprites.setDataNumber(Character, "AttackDamage", 8 + 2 * 1.1 ** SKILL_BLOODLUST)
+                    sprites.setDataNumber(Character, "BowDamage", 9 + 2 * 1.1 ** SKILL_BLOODLUST)
+                }
+                if (miniMenu.getMenuItem(MENU_SELECT_OPTION, 0).getIcon().equals(assets.image`skill_resilience`)) {
+                    SKILL_RESILIENCE += 1
+                    sprites.setDataNumber(Character, "MaxHealth", 100 + 50 * 1.1 ** SKILL_BLOODLUST)
+                }
+                GAME_PLAYER_LEVELUPS += -1
+            }
+            miniMenu.close(MENU_SELECT_OPTION)
+            MENU_SHOW_SUCCESS = miniMenu.createMenu(
+            miniMenu.createMenuItem("OK >")
+            )
+            MENU_SHOW_SUCCESS.z = 3200
+            miniMenu.setDimensions(MENU_SHOW_SUCCESS, 96, 34)
+            MENU_SHOW_SUCCESS.setPosition(scene.cameraProperty(CameraProperty.X), scene.cameraProperty(CameraProperty.Y))
+            miniMenu.setTitle(MENU_SHOW_SUCCESS, "POINT ADDED.")
+            miniMenu.setFrame(MENU_SHOW_SUCCESS, assets.image`lootReward27`)
+            miniMenu.onButtonPressed(MENU_SHOW_SUCCESS, miniMenu.Button.A, function (selection, selectedIndex) {
+                miniMenu.close(MENU_SHOW_SUCCESS)
+                if (GAME_PLAYER_LEVELUPS > 0) {
+                    MENU_SPEND_SKILL_POINTS()
+                } else {
+                    MENU_SELECT_LEVELS()
+                }
+            })
+        }
+        if (selectedIndex == 2) {
+            MENU_SPEND_SKILL_POINTS()
+        }
+    })
+}
 function GetEntity_Speed_Index (ID: number) {
     return ENTITY_SPEED_INDEX[parseFloat(convertToText(ID).substr(0, 1)) - 1][parseFloat(convertToText(ID).substr(1, convertToText(ID).length - 1)) - 1] * -1
 }
@@ -1417,6 +1540,44 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
         DoAction(STATE_JUMP)
     }
 })
+function MENU_SELECT_LEVELS () {
+    bMenuOpen = true
+    SetInputMode(INPUT_LOCKED)
+    ClearUnhealthyStates()
+    MENU_SELECT_LEVEL = miniMenu.createMenuFromArray([miniMenu.createMenuItem("PLAY NEXT LEVEL?")])
+    CreateReplayOptions()
+    miniMenu.onSelectionChanged(MENU_SELECT_LEVEL, function (selection, selectedIndex) {
+        music.play(music.createSoundEffect(WaveShape.Noise, 3900, 3500, 255, 0, 10, SoundExpressionEffect.None, InterpolationCurve.Linear), music.PlaybackMode.InBackground)
+    })
+    MENU_SELECT_LEVEL.z = 2000
+    miniMenu.setDimensions(MENU_SELECT_LEVEL, 148, 94)
+    MENU_SELECT_LEVEL.setPosition(scene.cameraProperty(CameraProperty.X), scene.cameraProperty(CameraProperty.Y))
+    miniMenu.setFrame(MENU_SELECT_LEVEL, assets.image`lootReward27`)
+    miniMenu.setMenuStyleProperty(MENU_SELECT_LEVEL, miniMenu.MenuStyleProperty.DisabledItemsSelectable, 0)
+    miniMenu.setMenuStyleProperty(MENU_SELECT_LEVEL, miniMenu.MenuStyleProperty.Padding, 0)
+    miniMenu.setMenuStyleProperty(MENU_SELECT_LEVEL, miniMenu.MenuStyleProperty.BackgroundColor, 12)
+    miniMenu.setStyleProperty(MENU_SELECT_LEVEL, miniMenu.StyleKind.Selected, miniMenu.StyleProperty.Foreground, 5)
+    miniMenu.setStyleProperty(MENU_SELECT_LEVEL, miniMenu.StyleKind.Default, miniMenu.StyleProperty.Foreground, 6)
+    miniMenu.setStyleProperty(MENU_SELECT_LEVEL, miniMenu.StyleKind.DefaultAndSelected, miniMenu.StyleProperty.Background, 12)
+    miniMenu.setStyleProperty(MENU_SELECT_LEVEL, miniMenu.StyleKind.Disabled, miniMenu.StyleProperty.Background, 10)
+    miniMenu.setStyleProperty(MENU_SELECT_LEVEL, miniMenu.StyleKind.Disabled, miniMenu.StyleProperty.Foreground, 11)
+    miniMenu.setStyleProperty(MENU_SELECT_LEVEL, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Background, 14)
+    miniMenu.setStyleProperty(MENU_SELECT_LEVEL, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Foreground, 5)
+    miniMenu.setStyleProperty(MENU_SELECT_LEVEL, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Alignment, 1)
+    miniMenu.setTitle(MENU_SELECT_LEVEL, "XTEAR'S ADVENTURE")
+    miniMenu.onButtonPressed(MENU_SELECT_LEVEL, miniMenu.Button.A, function (selection, selectedIndex) {
+        if (selectedIndex == 0) {
+            miniMenu.close(MENU_SELECT_LEVEL)
+            SetInputMode(INPUT_GAME)
+            Play_Level(GAME_PLAYER_HIGHEST_LEVEL_COMPLETED + 1)
+        } else {
+            miniMenu.close(MENU_SELECT_LEVEL)
+            SetInputMode(INPUT_GAME)
+            bMenuOpen = false
+            Play_Level(selectedIndex)
+        }
+    })
+}
 function AimingBow (_true: boolean) {
     if (_true && GAME_RUNNING) {
         angle = 0
@@ -1765,6 +1926,7 @@ function GetClosestLivingEntity () {
 }
 function CreatePlayerComponent () {
     GAME_PLAYER_LEVEL = 1
+    GAME_PLAYER_HIGHEST_LEVEL_COMPLETED = 1
     Character = sprites.create(assets.image`xtear_sprite`, SpriteKind.Player)
     tiles.placeOnTile(Character, tiles.getTileLocation(2, 6))
     Character.ay = 400
@@ -1781,8 +1943,9 @@ function CreatePlayerComponent () {
     175,
     true
     )
-    sprites.setDataNumber(Character, "AttackDamage", 7)
+    sprites.setDataNumber(Character, "AttackDamage", 8)
     sprites.setDataNumber(Character, "BowDamage", 9)
+    sprites.setDataNumber(Character, "MagicDamage", 12)
     Character_Shield = sprites.create(assets.image`player_shield`, SpriteKind.Effect)
     Character_Shield.setFlag(SpriteFlag.Invisible, true)
     Character_Shield.setPosition(Character.x + 6, Character.y)
@@ -1975,10 +2138,10 @@ function StartGame () {
 function PLAYER_PASSIVE_REGENERATION () {
     if (INPUT_MODE == INPUT_GAME) {
         if (sprites.readDataNumber(Character, "Mana") < sprites.readDataNumber(Character, "MaxMana")) {
-            sprites.changeDataNumberBy(Character, "Mana", 1)
+            sprites.changeDataNumberBy(Character, "Mana", sprites.readDataNumber(Character, "MaxMana") / 100)
         }
         if (sprites.readDataNumber(Character, "Health") < sprites.readDataNumber(Character, "MaxHealth")) {
-            sprites.changeDataNumberBy(Character, "Health", 0.25)
+            sprites.changeDataNumberBy(Character, "Health", sprites.readDataNumber(Character, "MaxHealth") / 400)
         }
     }
 }
@@ -2052,6 +2215,10 @@ let RANGED_WEAPON_RETICLE: Sprite = null
 let RANGED_WEAPON_CONTROL = 0
 let BOW_CHARGE = 0
 let angle = 0
+let SKILL_RESILIENCE = 0
+let SKILL_BLOODLUST = 0
+let SKILL_MANAPOOL = 0
+let MENU_SPEND_SKILL_POINT: Sprite = null
 let j = 0
 let CharacterStates: string[] = []
 let myMenu: Sprite = null
@@ -2095,6 +2262,8 @@ let LEVEL_RECAP_TEXT: TextSprite = null
 let LEVEL_RECAP: Sprite = null
 let SB_ENTITY: StatusBarSprite = null
 let Entity: Sprite = null
+let MENU_SELECT_LEVEL: Sprite = null
+let GAME_PLAYER_HIGHEST_LEVEL_COMPLETED = 0
 let INPUT_MODE = ""
 let LastFloorBackground: Sprite = null
 let LastFloorForeground: Sprite = null
