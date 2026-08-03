@@ -177,8 +177,8 @@ function SetInputMode (Mode: string) {
     INPUT_MODE = Mode
 }
 function CreateReplayOptions () {
-    for (let index = 0; index <= GAME_PLAYER_HIGHEST_LEVEL_COMPLETED - 1; index++) {
-        miniMenu.insertMenuItem(MENU_SELECT_LEVEL, miniMenu.createMenuItem("REPLAY LVL " + (index + 1), GET_LVL_ICON(index + 1)), miniMenu.getMenuItems(MENU_SELECT_LEVEL).length)
+    for (let index2 = 0; index2 <= GAME_PLAYER_HIGHEST_LEVEL_COMPLETED - 1; index2++) {
+        miniMenu.insertMenuItem(MENU_SELECT_LEVEL, miniMenu.createMenuItem("REPLAY LVL " + (index2 + 1), GET_LVL_ICON(index2 + 1)), miniMenu.getMenuItems(MENU_SELECT_LEVEL).length)
     }
 }
 function AddEntity (ID: number, Location: tiles.Location) {
@@ -214,6 +214,12 @@ function AwaitLevelCompleted (Level: number) {
     timer.background(function () {
         pauseUntil(() => !(ExistsLivingEnemy()))
         timer.after(2500, function () {
+            for (let index = 0; index <= 25; index++) {
+                music.setVolume(255 - index * 10)
+                pause(100)
+            }
+            music.stopAllSounds()
+            music.setVolume(255)
             GAME_PLAYER_HIGHEST_LEVEL_COMPLETED = Level
             LEVEL_RECAP = sprites.createProjectileFromSide(assets.image`StatBlockSprite4`, 0, 0)
             LEVEL_RECAP_TEXT = textsprite.create(convertToText(GAME_SCORE_EARNED_LEVEL), 0, 1)
@@ -315,10 +321,14 @@ function AwaitLevelCompleted (Level: number) {
                                 timer.after(3500, function () {
                                     sprites.destroy(LEVEL_RECAP)
                                     sprites.destroy(LEVEL_RECAP_TEXT)
+                                    music.stopAllSounds()
+                                    music.play(music.createSong(assets.song`song_menu0`), music.PlaybackMode.LoopingInBackground)
                                     MENU_SPEND_SKILL_POINTS()
                                 })
                             })
                         } else {
+                            music.stopAllSounds()
+                            music.play(music.createSong(assets.song`song_menu`), music.PlaybackMode.LoopingInBackground)
                             MENU_SELECT_LEVELS()
                         }
                     })
@@ -606,6 +616,7 @@ function DATA_SAVE (SaveFile: number) {
     blockSettings.writeNumberArray("save_" + SaveFile, [GAME_PLAYER_LEVEL, GAME_PLAYER_XP, 0])
 }
 function Play_Level (level: number) {
+    music.stopAllSounds()
     GAME_SCORE_EARNED_LEVEL = 0
     LEVEL_BANNER = sprites.createProjectileFromSide(assets.image`level_banner_1`, -50, 0)
     tiles.placeOnTile(LEVEL_BANNER, tiles.getTileLocation(14, 4))
@@ -630,6 +641,7 @@ function Play_Level (level: number) {
             music.play(music.createSoundEffect(WaveShape.Square, 200, 1, 255, 0, 300, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
             pause(300)
         }
+        music.play(music.createSong(assets.song`song_game_1`), music.PlaybackMode.LoopingInBackground)
     })
     timer.after(1000, function () {
         AddEntity(11, tiles.getTileLocation(10, 6))
@@ -1776,7 +1788,7 @@ function Cutscene (Scene: number) {
                                                                     music.play(music.createSong(assets.song`intro_song1`), music.PlaybackMode.UntilDone)
                                                                     timer.background(function () {
                                                                         music.play(music.createSong(assets.song`intro_song2`), music.PlaybackMode.UntilDone)
-                                                                        music.play(music.createSong(assets.song`song_game_1`), music.PlaybackMode.LoopingInBackground)
+                                                                        music.play(music.createSong(assets.song`song_theme_nether_1`), music.PlaybackMode.LoopingInBackground)
                                                                     })
                                                                 })
                                                                 color.clearFadeEffect()
